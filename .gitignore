@@ -1,0 +1,13 @@
+# Freelance Marketplace
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.dat
+.pytest_cache/
+.env
+*.egg-info/
+dist/
+build/
+.DS_Store

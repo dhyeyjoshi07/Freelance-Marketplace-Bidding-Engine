@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Freelancer Dashboard — browse projects, submit bids, track proposals, and manage your profile.">
+  <title>Freelancer Dashboard — BidForge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="/freelancer.html" class="navbar-brand">
+        <div class="logo-icon">⚡</div>
+        BidForge
+      </a>
+      <div class="navbar-actions">
+        <div class="navbar-user">
+          <span id="nav-username"></span>
+          <div class="user-avatar" id="nav-avatar"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dashboard -->
+  <div class="container dashboard">
+    <div class="dashboard-header">
+      <h1>Freelancer Dashboard</h1>
+      <p class="subtitle">Find projects, submit bids, and grow your career</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-bids">0</div>
+        <div class="stat-label">Bids Placed</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-active">0</div>
+        <div class="stat-label">Active Projects</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-completed">0</div>
+        <div class="stat-label">Completed</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-earned">$0</div>
+        <div class="stat-label">Earned</div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid-2" style="align-items: flex-start;">
+      <!-- Left: Tabs for Projects & Bids -->
+      <div>
+        <div>
+          <div class="tabs">
+            <button class="tab active" data-tab="tab-browse">Browse Projects</button>
+            <button class="tab" data-tab="tab-bids">My Bids</button>
+          </div>
+
+          <!-- Browse Projects Tab -->
+          <div class="tab-content active" id="tab-browse">
+            <div class="section-header">
+              <h2 style="font-size: 1.1rem;">Open Projects</h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadOpenProjects()">↻ Refresh</button>
+            </div>
+            <div id="open-projects-list" class="projects-list">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- My Bids Tab -->
+          <div class="tab-content" id="tab-bids">
+            <div class="section-header">
+              <h2 style="font-size: 1.1rem;">My Bids</h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadMyBids()">↻ Refresh</button>
+            </div>
+            <div id="my-bids-list" class="projects-list">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Profile Card -->
+      <div>
+        <div class="glass-card no-hover" id="profile-card">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit Bid Modal -->
+  <div class="modal-overlay" id="bid-modal">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h2>Submit Bid</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div style="margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--bg-surface-2); border-radius: var(--radius-md);">
+        <p class="text-sm text-muted">PROJECT</p>
+        <p class="fw-600" id="bid-project-title"></p>
+        <p class="text-sm mt-sm">
+          <span class="text-muted">Budget: </span>
+          <span class="text-emerald fw-600" id="bid-budget-range"></span>
+        </p>
+      </div>
+      <form id="bid-form">
+        <div class="form-group">
+          <label class="form-label" for="bid-amount">Your Bid Amount ($)</label>
+          <input class="form-input" type="number" id="bid-amount" min="1" step="1" placeholder="Enter your bid amount" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="bid-proposal">Proposal</label>
+          <textarea class="form-textarea" id="bid-proposal" placeholder="Why are you the best fit for this project? Highlight your relevant experience..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Submit Bid</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <form id="profile-form">
+        <div class="form-group">
+          <label class="form-label" for="profile-skills">Skills</label>
+          <input class="form-input" type="text" id="profile-skills" placeholder="e.g., Python, React, SQL (comma-separated)">
+          <span class="text-xs text-muted">Separate skills with commas. These are matched against project requirements.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="profile-rate">Hourly Rate ($)</label>
+          <input class="form-input" type="number" id="profile-rate" min="1" step="1" placeholder="65" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Save Profile</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/freelancer.js"></script>
+</body>
+</html>

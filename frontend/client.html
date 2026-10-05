@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Client Dashboard — post projects, view ranked bids, accept proposals, and rate freelancers.">
+  <title>Client Dashboard — BidForge</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="/client.html" class="navbar-brand">
+        <div class="logo-icon">⚡</div>
+        BidForge
+      </a>
+      <div class="navbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="openModal('create-project-modal')">+ New Project</button>
+        <div class="navbar-user">
+          <span id="nav-username"></span>
+          <div class="user-avatar" id="nav-avatar"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dashboard -->
+  <div class="container dashboard">
+    <div class="dashboard-header">
+      <h1>Client Dashboard</h1>
+      <p class="subtitle">Post projects, review bids, and hire top freelancers</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-open">0</div>
+        <div class="stat-label">Open Projects</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-progress">0</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-completed">0</div>
+        <div class="stat-label">Completed</div>
+      </div>
+      <div class="glass-card stat-card no-hover">
+        <div class="stat-value" id="stat-bids">0</div>
+        <div class="stat-label">Total Bids</div>
+      </div>
+    </div>
+
+    <!-- Projects Section -->
+    <div class="section-header">
+      <h2>My Projects</h2>
+      <button class="btn btn-secondary btn-sm" onclick="loadMyProjects()">↻ Refresh</button>
+    </div>
+
+    <div id="projects-list" class="projects-list">
+      <div class="loading-overlay"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Create Project Modal -->
+  <div class="modal-overlay" id="create-project-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Post New Project</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <form id="create-project-form">
+        <div class="form-group">
+          <label class="form-label" for="proj-title">Project Title</label>
+          <input class="form-input" type="text" id="proj-title" placeholder="e.g., Build a React Dashboard" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="proj-desc">Description</label>
+          <textarea class="form-textarea" id="proj-desc" placeholder="Describe the project scope, deliverables, and any specific requirements..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="proj-skills">Required Skills</label>
+          <input class="form-input" type="text" id="proj-skills" placeholder="e.g., Python, React, SQL (comma-separated)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="proj-budget-min">Budget Min ($)</label>
+            <input class="form-input" type="number" id="proj-budget-min" min="1" step="1" placeholder="500" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="proj-budget-max">Budget Max ($)</label>
+            <input class="form-input" type="number" id="proj-budget-max" min="1" step="1" placeholder="5000" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="proj-deadline">Deadline</label>
+          <input class="form-input" type="datetime-local" id="proj-deadline" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-sm);">Post Project</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ranked Bids Modal -->
+  <div class="modal-overlay" id="bids-modal">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal-header">
+        <h2>🏆 Ranked Bids</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <div id="bids-list" style="display: flex; flex-direction: column; gap: var(--space-md); max-height: 60vh; overflow-y: auto;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Rating Modal -->
+  <div class="modal-overlay" id="rating-modal">
+    <div class="modal" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2>★ Rate Freelancer</h2>
+        <button class="modal-close">✕</button>
+      </div>
+      <form id="rating-form">
+        <div class="form-group" style="text-align: center;">
+          <label class="form-label">Your Rating</label>
+          <div style="font-size: 2rem; margin: var(--space-md) 0;">
+            <span class="star-rating" data-rating="0" data-name="score">
+              <span class="star" data-value="1">★</span>
+              <span class="star" data-value="2">★</span>
+              <span class="star" data-value="3">★</span>
+              <span class="star" data-value="4">★</span>
+              <span class="star" data-value="5">★</span>
+            </span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rating-review">Review (optional)</label>
+          <textarea class="form-textarea" id="rating-review" placeholder="Share your experience working with this freelancer..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-gold btn-lg" style="width: 100%;">Submit Rating</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/client.js"></script>
+</body>
+</html>
