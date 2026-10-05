@@ -1,4 +1,4 @@
-<div align="center">
+align="center">
 
 # ⚖️ BidForge
 
