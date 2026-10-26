@@ -18,7 +18,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import (
+    Column, Integer, String, Float, DateTime, ForeignKey, Text, CheckConstraint
+)
 from sqlalchemy.orm import relationship
 
 from backend.database import Base
@@ -68,8 +70,18 @@ class User(Base):
     Persistent user record.  The `role` column maps to UserRole and determines
     which ABC subclass (ClientUser / FreelancerUser) governs the user's
     permissions in the service layer.
+
+    CHECK constraint (DBMS Unit 7): role must be one of the two valid values.
+    This is enforced at the database level via MySQL CHECK constraint, in
+    addition to the application-level validation.
     """
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('client', 'freelancer')",
+            name="ck_users_role_valid"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
@@ -108,8 +120,21 @@ class FreelancerProfile(Base):
     set-based matching in the MatchEngine.
     `avg_rating` and `total_ratings` are denormalized aggregates updated each
     time a client submits a rating, avoiding expensive JOINs on read.
+
+    CHECK constraints (DBMS Unit 7):
+    - hourly_rate must be non-negative
+    - avg_rating must be between 0 and 5
+    - total_ratings must be non-negative
     """
     __tablename__ = "freelancer_profiles"
+    __table_args__ = (
+        CheckConstraint("hourly_rate >= 0", name="ck_profile_rate_positive"),
+        CheckConstraint(
+            "avg_rating >= 0 AND avg_rating <= 5",
+            name="ck_profile_rating_range"
+        ),
+        CheckConstraint("total_ratings >= 0", name="ck_profile_total_ratings_positive"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(

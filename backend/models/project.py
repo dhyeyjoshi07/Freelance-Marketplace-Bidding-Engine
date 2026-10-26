@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Column, Integer, String, Float, DateTime, ForeignKey, Text
+    Column, Integer, String, Float, DateTime, ForeignKey, Text, CheckConstraint
 )
 from sqlalchemy.orm import relationship
 
@@ -38,8 +38,21 @@ class Project(Base):
     A client-posted project that freelancers can bid on.
 
     Lifecycle:  Open ──accept_bid()──▶ InProgress ──mark_completed()──▶ Completed
+
+    CHECK constraints (DBMS Unit 7):
+    - budget_min must be non-negative
+    - budget_max must be positive
+    - status must be one of the three valid lifecycle states
     """
     __tablename__ = "projects"
+    __table_args__ = (
+        CheckConstraint("budget_min >= 0", name="ck_project_budget_min_positive"),
+        CheckConstraint("budget_max > 0", name="ck_project_budget_max_positive"),
+        CheckConstraint(
+            "status IN ('open', 'in_progress', 'completed')",
+            name="ck_project_status_valid"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(

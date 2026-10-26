@@ -21,7 +21,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from backend.app import app
@@ -29,10 +29,10 @@ from backend.database import Base
 from backend.dependencies import get_db
 
 
-# ---- In-memory test database setup ----
+# ---- MySQL test database setup ----
 
-TEST_DATABASE_URL = "sqlite:///./test_marketplace.db"
-test_engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TEST_DATABASE_URL = "mysql+pymysql://bidforge_user:bidforge_pass@localhost:3306/bidforge_test"
+test_engine = create_engine(TEST_DATABASE_URL)
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
@@ -50,10 +50,27 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(autouse=True)
 def setup_db():
-    """Create tables before each test, drop after."""
+    """Create tables before each test, truncate before and after for clean isolation."""
+    # Ensure tables exist
+    import backend.models.user       # noqa: F401
+    import backend.models.project    # noqa: F401
+    import backend.models.bid        # noqa: F401
     Base.metadata.create_all(bind=test_engine)
+    # Clean slate before each test
+    with test_engine.connect() as conn:
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        conn.commit()
     yield
-    Base.metadata.drop_all(bind=test_engine)
+    # Clean up after each test
+    with test_engine.connect() as conn:
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        conn.commit()
 
 
 @pytest.fixture

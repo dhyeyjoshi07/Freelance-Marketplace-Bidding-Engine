@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
-from backend.routers import auth, projects, bids, freelancers
+from backend.routers import auth, projects, bids, freelancers, admin
 
 
 @asynccontextmanager
@@ -47,6 +47,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(bids.router)
 app.include_router(freelancers.router)
+app.include_router(admin.router)
 
 
 # Health check

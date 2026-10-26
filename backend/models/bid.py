@@ -17,7 +17,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Column, Integer, Float, DateTime, ForeignKey, Text, UniqueConstraint
+    Column, Integer, Float, DateTime, ForeignKey, Text, UniqueConstraint,
+    CheckConstraint
 )
 from sqlalchemy.orm import relationship
 
@@ -35,6 +36,12 @@ class Bid(Base):
     __table_args__ = (
         # Prevents the same freelancer from bidding twice on one project
         UniqueConstraint("project_id", "freelancer_id", name="uq_bid_project_freelancer"),
+        # CHECK constraints (DBMS Unit 7): enforce valid bid values at DB level
+        CheckConstraint("amount > 0", name="ck_bid_amount_positive"),
+        CheckConstraint(
+            "match_score >= 0 AND match_score <= 1",
+            name="ck_bid_score_range"
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -128,6 +135,8 @@ class Rating(Base):
     __tablename__ = "ratings"
     __table_args__ = (
         UniqueConstraint("project_id", name="uq_rating_project"),
+        # CHECK constraint (DBMS Unit 7): score must be 1-5 stars
+        CheckConstraint("score >= 1 AND score <= 5", name="ck_rating_score_range"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
