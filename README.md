@@ -203,33 +203,9 @@ Open **http://localhost:8000** in your browser.
 
 ## 📚 DBMS Syllabus Coverage
 
-This project demonstrates all 9 units of a typical B.Tech DBMS syllabus, using BidForge's own entities instead of textbook examples.
+This project covers all 9 units of a B.Tech DBMS syllabus — introductory concepts, ER model, relational model, normalization, query processing, transactions, SQL (DDL/DML/DCL), PL/SQL equivalents (MySQL triggers, stored procedures, cursors), and advanced topics (AES-256 encryption, audit trails, RBAC) — using BidForge's own entities instead of textbook examples. MySQL features like `CHECK` constraints, `GRANT/REVOKE`, transaction isolation levels, and `SELECT ... FOR UPDATE` locking are all demonstrated in working code.
 
-| Unit | Topic | Implementation | Files |
-|:----:|-------|----------------|-------|
-| 1 | Introductory Concepts | Three-schema architecture, data independence, DBA roles | [`docs/dbms/01_introduction.md`](docs/dbms/01_introduction.md) |
-| 2 | ER Model | ER diagram, entities, attributes, cardinality, generalization | [`docs/dbms/02_er_model.md`](docs/dbms/02_er_model.md) |
-| 3 | Relational Model | ER-to-relational mapping, relational algebra, tuple calculus | [`docs/dbms/03_relational_model.md`](docs/dbms/03_relational_model.md) |
-| 4 | Normalization | FD analysis, 1NF→BCNF walkthrough, denormalization trade-offs | [`docs/dbms/04_normalization.md`](docs/dbms/04_normalization.md) |
-| 5 | Query Processing | EXPLAIN analysis, B+ tree indexes, optimizer statistics | [`docs/dbms/05_query_processing.md`](docs/dbms/05_query_processing.md), [`backend/services/query_analyzer.py`](backend/services/query_analyzer.py) |
-| 6 | Transactions | ACID demo, savepoints, isolation levels, locking, WAL | [`docs/dbms/06_transactions.md`](docs/dbms/06_transactions.md), [`backend/services/transaction_manager.py`](backend/services/transaction_manager.py) |
-| 7 | SQL | DDL, DML, DCL, TCL, CHECK/FK/UNIQUE constraints, views | [`docs/dbms/07_sql.md`](docs/dbms/07_sql.md), [`scripts/sql/`](scripts/sql/) |
-| 8 | PL/SQL (MySQL) | Triggers (BEFORE/AFTER), stored procedures, functions, cursors | [`docs/dbms/08_plsql.md`](docs/dbms/08_plsql.md), [`scripts/sql/triggers.sql`](scripts/sql/triggers.sql), [`scripts/sql/procedures.sql`](scripts/sql/procedures.sql) |
-| 9 | Advanced Topics | AES-256 encryption, audit trail, GRANT/REVOKE, RBAC, JSON | [`docs/dbms/09_advanced.md`](docs/dbms/09_advanced.md), [`backend/services/encryption.py`](backend/services/encryption.py) |
-
-### MySQL Features Used (not possible with SQLite)
-
-| Feature | BidForge Usage |
-|---------|----------------|
-| **Stored Procedures** | `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()` |
-| **Stored Functions** | `fn_price_fit()` — mirrors Python MatchEngine logic in SQL |
-| **BEFORE/AFTER Triggers** | Bid validation, rating auto-update, project status audit log |
-| **GRANT / REVOKE** | `bidforge_user`, `bidforge_readonly`, role-based MySQL grants |
-| **Transaction Isolation** | READ COMMITTED, REPEATABLE READ, SERIALIZABLE |
-| **Row-level Locking** | `SELECT ... FOR UPDATE` for safe bid acceptance |
-| **CHECK Constraints** | Enforced natively on all models |
-| **Cursors** | `sp_bid_summary_cursor()` iterates bids row-by-row |
-| **SIGNAL** | Trigger error handling (PL/SQL `RAISE_APPLICATION_ERROR` equivalent) |
+📖 **Full documentation:** [`docs/dbms.md`](docs/dbms.md) &nbsp;|&nbsp; **SQL scripts:** [`scripts/sql/`](scripts/sql/) &nbsp;|&nbsp; **Admin API:** `/api/admin/*` endpoints
 
 ## 🏗️ Architecture
 
@@ -273,7 +249,8 @@ freelance-marketplace/
 │       ├── auth.js              # Token management + UI helpers
 │       ├── client.js            # Client dashboard logic
 │       └── freelancer.js        # Freelancer dashboard logic
-├── docs/dbms/                   # DBMS syllabus documentation (Units 1–9)
+├── docs/
+│   └── dbms.md                  # DBMS syllabus coverage (all 9 units)
 ├── scripts/sql/                 # Raw SQL reference scripts
 │   ├── ddl.sql                  # CREATE TABLE, ALTER, constraints
 │   ├── dml.sql                  # SELECT, INSERT, UPDATE, DELETE, JOINs, subqueries
