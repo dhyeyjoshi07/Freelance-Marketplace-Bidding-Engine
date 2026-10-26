@@ -8,11 +8,11 @@
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-91-brightgreen)
+![MySQL](https://img.shields.io/badge/MySQL-26.7-4479A1?logo=mysql&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-106-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Overview](#-overview) · [Quick Start](#-quick-start) · [How Ranking Works](#-how-ranking-works) · [API](#-api-reference) · [Testing](#-testing)
+[Overview](#-overview) · [Quick Start](#-quick-start) · [How Ranking Works](#-how-ranking-works) · [API](#-api-reference) · [DBMS Topics](#-dbms-syllabus-coverage) · [Testing](#-testing)
 
 </div>
 
@@ -30,7 +30,8 @@ Clients post projects with a budget and deadline. Freelancers submit bids. Inste
 - 🤝 **Dual-completion:** a project completes only after both client and freelancer confirm
 - ⭐ **Ratings:** clients rate freelancers (1–5 stars); averages update incrementally
 - 🧩 **Extensible scoring:** swap or override scoring components via a polymorphic `MatchEngine`
-- ✅ **Tested:** 91 tests covering models, the scoring algorithm, and the full API lifecycle
+- 🗄️ **MySQL backend:** triggers, stored procedures, CHECK constraints, indexes, audit log
+- ✅ **Tested:** 106 tests covering models, scoring, API lifecycle, and DBMS features
 
 ## 🧮 How Ranking Works
 
@@ -51,12 +52,35 @@ Each component (`_compute_skill_overlap`, `_compute_price_fit`, `_normalize_rati
 | Layer | Technology |
 |-------|-----------|
 | Backend | Python 3.14, FastAPI, SQLAlchemy |
-| Database | SQLite |
+| Database | **MySQL 26.7** (InnoDB) via PyMySQL driver |
 | Auth | bcrypt + JWT (python-jose) |
+| Encryption | AES-256 via Fernet (cryptography) |
 | Frontend | Vanilla HTML / CSS / JS |
 | Testing | pytest + FastAPI TestClient |
 
+### How MySQL Connects to Python
+
+```
+Python code  →  SQLAlchemy ORM  →  PyMySQL driver  →  MySQL server (port 3306)
+───────────     ──────────────     ──────────────     ─────────────────────────
+db.query(User)  translates to SQL  sends over TCP     executes & returns rows
+```
+
+The connection string in `backend/config.py` encodes all details:
+```
+mysql+pymysql://bidforge_user:bidforge_pass@localhost:3306/bidforge
+^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^ ^^^^^^^^^^^^  ^^^^^^^^^  ^^^^  ^^^^^^^
+dialect+driver  username       password      host       port  database
+```
+
 ## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.10+
+- MySQL 8.0+ (installed via `brew install mysql` on macOS)
+
+### Setup
 
 ```bash
 # 1. Clone and enter the project
@@ -70,10 +94,21 @@ source venv/bin/activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. (Optional) Seed with demo data
+# 4. Start MySQL and create the database
+brew services start mysql
+mysql -u root -e "
+CREATE DATABASE IF NOT EXISTS bidforge CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS bidforge_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'bidforge_user'@'localhost' IDENTIFIED BY 'bidforge_pass';
+GRANT ALL PRIVILEGES ON bidforge.* TO 'bidforge_user'@'localhost';
+GRANT ALL PRIVILEGES ON bidforge_test.* TO 'bidforge_user'@'localhost';
+FLUSH PRIVILEGES;
+"
+
+# 5. (Optional) Seed with demo data
 python3 seed.py
 
-# 5. Run the server
+# 6. Run the server
 python3 run.py
 ```
 
@@ -147,6 +182,55 @@ Open **http://localhost:8000** in your browser.
 
 </details>
 
+<details>
+<summary><b>🛡️ Admin / DBMS</b></summary>
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/admin/explain?query=...` | Run EXPLAIN on a SQL query |
+| GET | `/api/admin/table-stats/{table}` | Optimizer stats for a table |
+| GET | `/api/admin/query-optimization-demo` | Index vs. no-index comparison |
+| GET | `/api/admin/acid` | ACID property explanations |
+| POST | `/api/admin/encrypt?plaintext=...` | AES-256 encrypt/decrypt demo |
+| GET | `/api/admin/stored-procedure/ranked-bids/{id}` | Call sp_get_ranked_bids |
+| GET | `/api/admin/stored-procedure/freelancer-stats/{id}` | Call sp_freelancer_stats |
+| GET | `/api/admin/audit-log` | View audit trail |
+| GET | `/api/admin/triggers` | List all MySQL triggers |
+| GET | `/api/admin/stored-procedures` | List stored procedures & functions |
+| GET | `/api/admin/constraints?table_name=...` | List CHECK/FK/UNIQUE constraints |
+
+</details>
+
+## 📚 DBMS Syllabus Coverage
+
+This project demonstrates all 9 units of a typical B.Tech DBMS syllabus, using BidForge's own entities instead of textbook examples.
+
+| Unit | Topic | Implementation | Files |
+|:----:|-------|----------------|-------|
+| 1 | Introductory Concepts | Three-schema architecture, data independence, DBA roles | [`docs/dbms/01_introduction.md`](docs/dbms/01_introduction.md) |
+| 2 | ER Model | ER diagram, entities, attributes, cardinality, generalization | [`docs/dbms/02_er_model.md`](docs/dbms/02_er_model.md) |
+| 3 | Relational Model | ER-to-relational mapping, relational algebra, tuple calculus | [`docs/dbms/03_relational_model.md`](docs/dbms/03_relational_model.md) |
+| 4 | Normalization | FD analysis, 1NF→BCNF walkthrough, denormalization trade-offs | [`docs/dbms/04_normalization.md`](docs/dbms/04_normalization.md) |
+| 5 | Query Processing | EXPLAIN analysis, B+ tree indexes, optimizer statistics | [`docs/dbms/05_query_processing.md`](docs/dbms/05_query_processing.md), [`backend/services/query_analyzer.py`](backend/services/query_analyzer.py) |
+| 6 | Transactions | ACID demo, savepoints, isolation levels, locking, WAL | [`docs/dbms/06_transactions.md`](docs/dbms/06_transactions.md), [`backend/services/transaction_manager.py`](backend/services/transaction_manager.py) |
+| 7 | SQL | DDL, DML, DCL, TCL, CHECK/FK/UNIQUE constraints, views | [`docs/dbms/07_sql.md`](docs/dbms/07_sql.md), [`scripts/sql/`](scripts/sql/) |
+| 8 | PL/SQL (MySQL) | Triggers (BEFORE/AFTER), stored procedures, functions, cursors | [`docs/dbms/08_plsql.md`](docs/dbms/08_plsql.md), [`scripts/sql/triggers.sql`](scripts/sql/triggers.sql), [`scripts/sql/procedures.sql`](scripts/sql/procedures.sql) |
+| 9 | Advanced Topics | AES-256 encryption, audit trail, GRANT/REVOKE, RBAC, JSON | [`docs/dbms/09_advanced.md`](docs/dbms/09_advanced.md), [`backend/services/encryption.py`](backend/services/encryption.py) |
+
+### MySQL Features Used (not possible with SQLite)
+
+| Feature | BidForge Usage |
+|---------|----------------|
+| **Stored Procedures** | `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()` |
+| **Stored Functions** | `fn_price_fit()` — mirrors Python MatchEngine logic in SQL |
+| **BEFORE/AFTER Triggers** | Bid validation, rating auto-update, project status audit log |
+| **GRANT / REVOKE** | `bidforge_user`, `bidforge_readonly`, role-based MySQL grants |
+| **Transaction Isolation** | READ COMMITTED, REPEATABLE READ, SERIALIZABLE |
+| **Row-level Locking** | `SELECT ... FOR UPDATE` for safe bid acceptance |
+| **CHECK Constraints** | Enforced natively on all models |
+| **Cursors** | `sp_bid_summary_cursor()` iterates bids row-by-row |
+| **SIGNAL** | Trigger error handling (PL/SQL `RAISE_APPLICATION_ERROR` equivalent) |
+
 ## 🏗️ Architecture
 
 <details>
@@ -156,25 +240,29 @@ Open **http://localhost:8000** in your browser.
 freelance-marketplace/
 ├── backend/                     # FastAPI + SQLAlchemy
 │   ├── app.py                   # FastAPI factory, router registration, static mount
-│   ├── config.py                # DB URL, JWT secret, match engine weights
-│   ├── database.py              # SQLAlchemy engine, session, Base
+│   ├── config.py                # MySQL URL, JWT secret, match engine weights, encryption key
+│   ├── database.py              # SQLAlchemy engine, triggers, stored procedures, indexes
 │   ├── dependencies.py          # get_db, get_current_user, require_role()
 │   ├── exceptions.py            # Custom exceptions (4 types)
 │   ├── models/
 │   │   ├── enums.py             # ProjectStatus, UserRole
-│   │   ├── user.py              # User ABC hierarchy + FreelancerProfile
-│   │   ├── project.py           # Project with encapsulated status machine
-│   │   └── bid.py               # Bid ORM + BidRanked dataclass + Rating
+│   │   ├── user.py              # User ABC hierarchy + FreelancerProfile + CHECK constraints
+│   │   ├── project.py           # Project with encapsulated status machine + CHECK constraints
+│   │   └── bid.py               # Bid ORM + BidRanked dataclass + Rating + CHECK constraints
 │   ├── schemas/                 # Pydantic request/response models
 │   ├── routers/
 │   │   ├── auth.py              # Register, login (JWT), me
 │   │   ├── projects.py          # CRUD + accept bid + dual-completion
 │   │   ├── bids.py              # Submit bid + ranked list
-│   │   └── freelancers.py       # Profile CRUD + ratings
+│   │   ├── freelancers.py       # Profile CRUD + ratings
+│   │   └── admin.py             # DBMS educational endpoints (EXPLAIN, ACID, triggers, etc.)
 │   └── services/
 │       ├── auth_service.py      # bcrypt hashing + JWT tokens
 │       ├── match_engine.py      # MatchEngine + WeightedSkillMatchEngine
-│       └── ranking.py           # RankedBidQueue (heapq-based)
+│       ├── ranking.py           # RankedBidQueue (heapq-based)
+│       ├── encryption.py        # AES-256 column-level encryption
+│       ├── query_analyzer.py    # EXPLAIN, table stats, index analysis
+│       └── transaction_manager.py # ACID demo, savepoints, isolation levels
 ├── frontend/                    # Vanilla HTML/CSS/JS
 │   ├── index.html               # Login / register page
 │   ├── client.html              # Client dashboard
@@ -185,44 +273,67 @@ freelance-marketplace/
 │       ├── auth.js              # Token management + UI helpers
 │       ├── client.js            # Client dashboard logic
 │       └── freelancer.js        # Freelancer dashboard logic
+├── docs/dbms/                   # DBMS syllabus documentation (Units 1–9)
+├── scripts/sql/                 # Raw SQL reference scripts
+│   ├── ddl.sql                  # CREATE TABLE, ALTER, constraints
+│   ├── dml.sql                  # SELECT, INSERT, UPDATE, DELETE, JOINs, subqueries
+│   ├── dcl.sql                  # GRANT, REVOKE, roles
+│   ├── triggers.sql             # BEFORE/AFTER triggers with SIGNAL
+│   ├── procedures.sql           # Stored procedures, functions, cursors
+│   └── transactions.sql         # BEGIN, COMMIT, ROLLBACK, SAVEPOINT, isolation levels
 ├── tests/
 │   ├── test_models.py           # 40 unit tests (OOP classes)
 │   ├── test_match_engine.py     # 28 unit tests (scoring algorithm)
-│   └── test_api.py              # 23 integration tests (full lifecycle)
+│   ├── test_api.py              # 23 integration tests (full lifecycle)
+│   └── test_dbms.py             # 15 DBMS feature tests (constraints, transactions, encryption)
 ├── seed.py                      # Demo data seeder
 ├── run.py                       # uvicorn launcher
-└── requirements.txt
+├── report.tex                   # LaTeX project report
+├── requirements.txt
+└── LICENSE                      # MIT License
 ```
 
 </details>
 
 <details>
-<summary><b>🗄️ Database schema</b> (5 tables, SQLite via SQLAlchemy)</summary>
+<summary><b>🗄️ Database schema</b> (6 tables, MySQL InnoDB)</summary>
 
 ```
 users (id, username, email, password_hash, role, created_at)
+  │    CHECK: role IN ('client', 'freelancer')
   │
   ├──→ freelancer_profiles (user_id FK, skills JSON, hourly_rate, avg_rating, total_ratings)
+  │    CHECK: hourly_rate >= 0, 0 <= avg_rating <= 5
+  │
   ├──→ projects (client_id FK, title, description, required_skills JSON,
   │              budget_min, budget_max, deadline, status, accepted_bid_id FK,
   │              client_completed, freelancer_completed, created_at)
+  │    CHECK: budget_min >= 0, budget_max > 0, status IN ('open','in_progress','completed')
+  │
   ├──→ bids (project_id FK, freelancer_id FK, amount, proposal, match_score, created_at)
-  │         UNIQUE(project_id, freelancer_id)
-  └──→ ratings (project_id FK, freelancer_id FK, client_id FK, score, review, created_at)
-                UNIQUE(project_id)
+  │    UNIQUE(project_id, freelancer_id), CHECK: amount > 0, 0 <= match_score <= 1
+  │
+  ├──→ ratings (project_id FK, freelancer_id FK, client_id FK, score, review, created_at)
+  │    UNIQUE(project_id), CHECK: 1 <= score <= 5
+  │
+  └──→ audit_log (table_name, record_id, action, old_value, new_value, changed_at)
+       Populated by trg_after_update_project_status trigger
 ```
 
-**Design choices**
-- **Skills as JSON:** stored as JSON arrays for flexible matching via `set` intersection
-- **Denormalized rating:** `avg_rating` is updated incrementally on each new rating, avoiding expensive aggregation queries
-- **Dual-completion flags:** `client_completed` / `freelancer_completed` stored as integers (0/1) on the project
+**Triggers:** `trg_before_insert_bid` (validation), `trg_before_insert_project` (budget validation), `trg_after_insert_rating` (auto-update avg), `trg_after_update_project_status` (audit log)
+
+**Indexes:** `idx_bids_project_score` (covering), `idx_bids_freelancer`, `idx_projects_status`, `idx_projects_client`, `idx_ratings_freelancer`
+
+**Stored Procedures:** `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()`
+
+**Stored Functions:** `fn_price_fit()`
 
 </details>
 
 ## 🧠 OOP Design & Data Structures
 
 | Concept | Where | Summary |
-|---------|-------|---------|
+|---------|-------|---------| 
 | **Abstraction & Inheritance** | `UserBase` (ABC) | `ClientUser` and `FreelancerUser` implement abstract `get_role()`; used in the service layer for polymorphic role checks |
 | **Polymorphism** | `MatchEngine` | Overridable scoring components; `WeightedSkillMatchEngine` overrides skill overlap |
 | **Operator overloading** | `BidRanked.__lt__` / `__gt__` | Inverted comparison so `sorted()` and `heapq` yield highest score first |
@@ -288,7 +399,7 @@ The `_index` dict provides O(1) bid lookup by ID and enables lazy deletion witho
 
 ## 🧪 Testing
 
-91 tests: 40 model unit tests, 28 match-engine unit tests, and 23 API integration tests.
+106 tests: 40 model unit tests, 28 match-engine unit tests, 23 API integration tests, and 15 DBMS feature tests.
 
 ```bash
 # Run all tests
@@ -299,6 +410,9 @@ python3 -m pytest tests/test_models.py tests/test_match_engine.py -v
 
 # Integration tests only
 python3 -m pytest tests/test_api.py -v
+
+# DBMS feature tests only
+python3 -m pytest tests/test_dbms.py -v
 ```
 
 ## 🎨 Frontend Design

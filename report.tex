@@ -189,8 +189,8 @@
   \begin{tabular}{rl}
     \textbf{Author:}      & Dhyey Joshi \\[0.3cm]
     \textbf{Repository:}   & \href{https://github.com/dhyeyjoshi07/Freelance-Marketplace-Bidding-Engine}{\texttt{github.com/dhyeyjoshi07/Freelance-Marketplace-Bidding-Engine}} \\[0.3cm]
-    \textbf{Tech Stack:}   & Python 3.14, FastAPI, SQLAlchemy, SQLite \\[0.3cm]
-    \textbf{Tests:}        & 91 (40 unit + 28 scoring + 23 integration) \\[0.3cm]
+    \textbf{Tech Stack:}   & Python 3.14, FastAPI, SQLAlchemy, MySQL 26.7 (InnoDB) \\[0.3cm]
+    \textbf{Tests:}        & 106 (40 unit + 28 scoring + 23 integration + 15 DBMS) \\[0.3cm]
     \textbf{License:}      & MIT \\[0.3cm]
     \textbf{Date:}         & October 2026 \\
   \end{tabular}
@@ -209,9 +209,9 @@
 
 BidForge is a full-stack freelance marketplace platform that replaces the traditional ``lowest bid wins'' model with a \textbf{fit-based ranking engine}. When a freelancer submits a bid on a project, the system automatically computes a composite \texttt{match\_score} by evaluating three dimensions: skill overlap between the freelancer and the project's requirements (weighted at 45\%), how well the bid amount fits the client's budget range (30\%), and the freelancer's historical rating (25\%). Bids are then presented to clients in ranked order, so the most qualified candidates surface first regardless of price.
 
-The system is built on \textbf{FastAPI} with \textbf{SQLAlchemy} ORM over SQLite, implementing a rigorous object-oriented architecture: an abstract base class hierarchy for users, a polymorphic match engine with overridable scoring components, operator-overloaded dataclasses for heap-based bid ranking, encapsulated state machines for project lifecycle management, and four custom exception types for domain-specific error handling. The frontend is a dark-themed glassmorphism interface built with vanilla HTML, CSS, and JavaScript.
+The system is built on \textbf{FastAPI} with \textbf{SQLAlchemy} ORM over \textbf{MySQL 26.7} (InnoDB), implementing a rigorous object-oriented architecture: an abstract base class hierarchy for users, a polymorphic match engine with overridable scoring components, operator-overloaded dataclasses for heap-based bid ranking, encapsulated state machines for project lifecycle management, and four custom exception types for domain-specific error handling. MySQL provides native triggers, stored procedures, CHECK constraints, transaction isolation levels, and GRANT/REVOKE for full DBMS syllabus coverage. The frontend is a dark-themed glassmorphism interface built with vanilla HTML, CSS, and JavaScript.
 
-The project is validated by \textbf{91 automated tests} spanning unit tests for OOP models, algorithmic tests for the scoring engine, and full API lifecycle integration tests. All tests pass with zero application warnings.
+The project is validated by \textbf{106 automated tests} spanning unit tests for OOP models, algorithmic tests for the scoring engine, full API lifecycle integration tests, and DBMS feature tests covering constraints, transactions, and encryption. All tests pass with zero application warnings.
 
 % =============================================================================
 \chapter{Introduction}
@@ -270,7 +270,7 @@ BidForge follows a \textbf{three-tier architecture}:
   \node[tier, fill=emerald!15] (frontend) at (0,4) {Frontend Layer\\[2pt]\normalfont\small HTML / CSS / JavaScript};
   \node[tier, fill=emerald!25] (api) at (0,2) {API Layer\\[2pt]\normalfont\small FastAPI Routers + Pydantic Schemas};
   \node[tier, fill=emerald!35] (service) at (0,0) {Service Layer\\[2pt]\normalfont\small MatchEngine + RankedBidQueue + AuthService};
-  \node[tier, fill=emerald!45] (data) at (0,-2) {Data Layer\\[2pt]\normalfont\small SQLAlchemy ORM + SQLite};
+  \node[tier, fill=emerald!45] (data) at (0,-2) {Data Layer\\[2pt]\normalfont\small SQLAlchemy ORM + MySQL (InnoDB)};
 
   \draw[arrow] (frontend) -- (api) node[midway, right, font=\small] {JSON / JWT};
   \draw[arrow] (api) -- (service) node[midway, right, font=\small] {Python calls};
@@ -307,7 +307,7 @@ The core OOP design uses an abstract base class hierarchy for users and a polymo
 
 \section{Database Schema}
 
-The application uses five tables in SQLite via SQLAlchemy:
+The application uses six tables in MySQL (InnoDB) via SQLAlchemy, with CHECK constraints, triggers, stored procedures, and performance indexes:
 
 \begin{center}
 \begin{tikzpicture}[
@@ -655,12 +655,127 @@ Dataclass & \texttt{BidRanked} & \texttt{@dataclass(order=False)} with custom co
 \end{table}
 
 % =============================================================================
+\chapter{DBMS Syllabus Coverage}
+% =============================================================================
+
+This project integrates all 9 units of a typical B.Tech DBMS syllabus into BidForge's codebase, using its own entities (users, projects, bids, ratings) instead of textbook examples. The MySQL 26.7 (InnoDB) backend provides native support for triggers, stored procedures, CHECK constraints, transaction isolation, and GRANT/REVOKE.
+
+\section{Syllabus-to-Code Mapping}
+
+\begin{table}[H]
+\centering
+\caption{DBMS Unit mapping to BidForge implementation}
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{Unit} & \textbf{Topic} & \textbf{Implementation} & \textbf{Files} \\
+\midrule
+1 & Introductory Concepts & Three-schema architecture, data independence & \texttt{docs/dbms/01} \\[3pt]
+2 & ER Model & ER diagram, entities, cardinalities, generalization & \texttt{docs/dbms/02} \\[3pt]
+3 & Relational Model & ER-to-relational mapping, relational algebra & \texttt{docs/dbms/03} \\[3pt]
+4 & Normalization & FD analysis, 1NF$\rightarrow$BCNF, denormalization & \texttt{docs/dbms/04} \\[3pt]
+5 & Query Processing & EXPLAIN, B+ tree indexes, optimizer stats & \texttt{query\_analyzer.py} \\[3pt]
+6 & Transactions & ACID, savepoints, isolation levels, WAL & \texttt{transaction\_mgr.py} \\[3pt]
+7 & SQL & DDL, DML, DCL, TCL, CHECK/FK/UNIQUE & \texttt{scripts/sql/} \\[3pt]
+8 & PL/SQL (MySQL) & Triggers, stored procedures, functions, cursors & \texttt{database.py} \\[3pt]
+9 & Advanced Topics & AES-256 encryption, audit trail, RBAC & \texttt{encryption.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{MySQL Triggers (Unit 8)}
+
+MySQL triggers replace Oracle PL/SQL triggers. BidForge uses four triggers:
+
+\begin{lstlisting}[style=pythonstyle, caption={BEFORE INSERT trigger for bid validation (MySQL)}]
+CREATE TRIGGER trg_before_insert_bid
+BEFORE INSERT ON bids
+FOR EACH ROW
+BEGIN
+    IF NEW.amount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Bid amount must be positive';
+    END IF;
+END;
+\end{lstlisting}
+
+\begin{itemize}
+  \item \texttt{trg\_before\_insert\_bid} --- validates bid amount and match\_score before insertion
+  \item \texttt{trg\_before\_insert\_project} --- validates budget range (min $<$ max)
+  \item \texttt{trg\_after\_insert\_rating} --- auto-updates freelancer's \texttt{avg\_rating} incrementally
+  \item \texttt{trg\_after\_update\_project\_status} --- logs status changes to \texttt{audit\_log} table
+\end{itemize}
+
+\section{Stored Procedures and Functions (Unit 8)}
+
+\begin{itemize}
+  \item \texttt{sp\_get\_ranked\_bids(project\_id)} --- returns bids ranked by match\_score, equivalent to \texttt{GET /api/projects/\{id\}/bids}
+  \item \texttt{sp\_freelancer\_stats(user\_id)} --- uses \texttt{DECLARE}, \texttt{SELECT INTO} to compute bid statistics
+  \item \texttt{sp\_bid\_summary\_cursor(project\_id)} --- demonstrates \texttt{CURSOR}, \texttt{FETCH}, \texttt{LOOP}, \texttt{HANDLER}
+  \item \texttt{fn\_price\_fit(amount, min, max)} --- mirrors the Python \texttt{MatchEngine.\_compute\_price\_fit()} method as a deterministic stored function
+\end{itemize}
+
+\section{CHECK Constraints (Unit 7)}
+
+All models include CHECK constraints enforced natively by MySQL:
+
+\begin{lstlisting}[style=pythonstyle, caption={CHECK constraints defined in SQLAlchemy models}]
+class Bid(Base):
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_bids_amount_positive"),
+        CheckConstraint("match_score >= 0 AND match_score <= 1",
+                        name="ck_bids_score_range"),
+        UniqueConstraint("project_id", "freelancer_id"),
+    )
+\end{lstlisting}
+
+\section{Transaction Management (Unit 6)}
+
+The \texttt{TransactionManager} service demonstrates ACID properties:
+
+\begin{itemize}
+  \item \textbf{Atomicity:} bid acceptance wraps two updates in a single transaction; InnoDB undo log enables rollback
+  \item \textbf{Consistency:} CHECK constraints, FK constraints, and triggers prevent invalid states
+  \item \textbf{Isolation:} default REPEATABLE READ with gap locking prevents phantom reads
+  \item \textbf{Durability:} InnoDB redo log (write-ahead logging) survives crashes
+\end{itemize}
+
+\section{AES-256 Encryption (Unit 9)}
+
+Column-level encryption for sensitive data:
+
+\begin{lstlisting}[style=pythonstyle, caption={AES-256 encryption service}]
+from backend.services.encryption import encrypt, decrypt
+
+encrypted = encrypt("alice@dev.io")
+# "gAAAAABm_x5k..." (Fernet ciphertext with IV + HMAC)
+original = decrypt(encrypted)
+# "alice@dev.io"
+\end{lstlisting}
+
+The encryption key is stored only in application config (never in the database), providing defense-in-depth even if the database is compromised.
+
+\section{Admin API Endpoints}
+
+BidForge exposes 11 educational endpoints under \texttt{/api/admin/} for demonstrating DBMS features:
+
+\begin{itemize}
+  \item \texttt{GET /explain?query=...} --- EXPLAIN output for any SQL query
+  \item \texttt{GET /table-stats/\{table\}} --- optimizer statistics and index info
+  \item \texttt{GET /acid} --- ACID property explanations with BidForge examples
+  \item \texttt{POST /encrypt?plaintext=...} --- AES-256 encrypt/decrypt roundtrip
+  \item \texttt{GET /stored-procedure/ranked-bids/\{id\}} --- calls \texttt{sp\_get\_ranked\_bids}
+  \item \texttt{GET /triggers} --- lists all MySQL triggers in the database
+  \item \texttt{GET /audit-log} --- views the immutable audit trail
+  \item \texttt{GET /constraints} --- lists CHECK, FK, UNIQUE constraints
+\end{itemize}
+
+% =============================================================================
 \chapter{Testing}
 % =============================================================================
 
 \section{Test Suite Overview}
 
-The project includes \textbf{91 automated tests} organized into three test modules:
+The project includes \textbf{106 automated tests} organized into four test modules:
 
 \begin{table}[H]
 \centering
@@ -671,7 +786,8 @@ The project includes \textbf{91 automated tests} organized into three test modul
 \midrule
 \texttt{test\_models.py} & 40 & ABC hierarchy, operator overloading (6 tests), project transitions (7 tests), budget validation (5 tests), freelancer rating (4 tests), custom exceptions (5 tests), RankedBidQueue (9 tests) \\[4pt]
 \texttt{test\_match\_engine.py} & 28 & Skill overlap (6 tests), price fit (9 tests), rating normalization (4 tests), composite score (5 tests), WeightedSkillMatchEngine (4 tests) \\[4pt]
-\texttt{test\_api.py} & 23 & Auth flow (6 tests), freelancer profile (3 tests), projects CRUD (6 tests), bids (5 tests), full lifecycle (1 test), ratings (2 tests) \\
+\texttt{test\_api.py} & 23 & Auth flow (6 tests), freelancer profile (3 tests), projects CRUD (6 tests), bids (5 tests), full lifecycle (1 test), ratings (2 tests) \\[4pt]
+\texttt{test\_dbms.py} & 15 & EXPLAIN analysis (2 tests), ACID/transactions (4 tests), CHECK/FK/UNIQUE constraints (5 tests), AES-256 encryption (4 tests) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -680,7 +796,7 @@ The project includes \textbf{91 automated tests} organized into three test modul
 
 \begin{lstlisting}[style=bashstyle, caption={Final test run output}]
 $ python3 -m pytest tests/ -v
-======================== 91 passed, 1 warning in 9.79s ========================
+======================== 106 passed, 1 warning in 12.51s ========================
 \end{lstlisting}
 
 The single remaining warning is a third-party Starlette/httpx deprecation notice, not from application code.
@@ -785,7 +901,7 @@ BidForge demonstrates that a freelance marketplace can move beyond ``lowest bid 
   \item A \textbf{heap-based ranking system} with $O(\log n)$ insertion and $O(1)$ lazy deletion.
   \item A \textbf{rigorous OOP architecture} with ABC hierarchies, operator overloading, encapsulated state machines, and custom exceptions.
   \item A \textbf{full-stack web application} with role-based JWT authentication, a dark-themed glassmorphism frontend, and 15 REST API endpoints.
-  \item \textbf{91 automated tests} covering unit, algorithmic, and integration layers.
+  \item \textbf{106 automated tests} covering unit, algorithmic, integration, and DBMS layers.
 \end{itemize}
 
 \section{Limitations \& Future Work}
@@ -793,7 +909,7 @@ BidForge demonstrates that a freelance marketplace can move beyond ``lowest bid 
 \begin{itemize}
   \item \textbf{Real-time updates:} The current architecture uses polling; WebSocket integration would enable live bid ranking updates.
   \item \textbf{NLP-based skill matching:} Replacing exact-match set intersection with semantic similarity (e.g., Word2Vec or sentence transformers) would improve matching quality.
-  \item \textbf{PostgreSQL migration:} SQLite is sufficient for demonstration but lacks concurrent write support for production use.
+  \item \textbf{Production deployment:} MySQL provides full ACID transactions, row-level locking, and concurrent write support for production use.
   \item \textbf{Payment integration:} Adding Stripe or a similar payment gateway would complete the marketplace flow.
   \item \textbf{Deployment:} Containerization with Docker and deployment to a cloud provider (e.g., Railway, Render) would make the demo publicly accessible.
 \end{itemize}
