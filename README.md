@@ -71,7 +71,7 @@ flowchart LR
 ### Project Structure
 
 ```
-bidforge/
+freelance-marketplace/
 ├── backend/
 │   ├── app.py                    # FastAPI app factory, middleware, lifespan
 │   ├── config.py                 # Environment-driven configuration
