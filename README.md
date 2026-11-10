@@ -170,22 +170,33 @@ mysql -u root -e "
   FLUSH PRIVILEGES;
 "
 
-# Seed demo data (optional) and run
+# Seed rich demo data (8 clients, 15 freelancers, 18 projects, 54 bids, 4 reviews)
 python3 seed.py
+
+# Run the server
 python3 run.py
 ```
 
-Open **http://localhost:8000** → register or use a demo account below.
+Open **http://localhost:8000** in your browser.
 
-### Demo Accounts (after seeding)
+### 🔑 Demo Accounts (after seeding)
 
-| Role | Username | Password |
-|------|----------|----------|
-| Client | `sarah_chen` | `password123` |
-| Client | `alex_rivera` | `password123` |
-| Freelancer | `dev_alice` | `password123` |
-| Freelancer | `dev_charlie` | `password123` |
-| Freelancer | `dev_bob` | `password123` |
+All demo accounts use password: `password123`
+
+| Role | Username | Organization / Profile | Domain & Stack |
+|------|----------|------------------------|----------------|
+| Client | `sarah_chen` | TechCorp — Senior Product Manager | Microservices, Observability, Analytics |
+| Client | `alex_rivera` | NextGen AI — Founder & CEO | ML Inference, Systems, Rust |
+| Client | `elena_rostova` | FinPulse — Head of Engineering | FinTech, WebSockets, Kafka Streaming |
+| Client | `morgan_wu` | PixelForge Agency — Creative Director | Mobile Apps, Design Systems, GraphQL |
+| Freelancer | `dev_alice` | Senior Backend Engineer ($85/hr) | Python, FastAPI, SQL, Docker, AWS |
+| Freelancer | `dev_charlie` | Full-Stack Architect ($95/hr) | Python, React, Redis, GraphQL |
+| Freelancer | `dev_diana` | ML Infrastructure Specialist ($125/hr) | PyTorch, TensorFlow, Python, Docker |
+| Freelancer | `dev_fiona` | Cloud & Distributed Systems ($110/hr) | Go, Kubernetes, Microservices, AWS |
+| Freelancer | `dev_hannah` | High-Performance Systems ($135/hr) | Rust, WebAssembly, C++, Linux |
+| Freelancer | `dev_bob` | Frontend Specialist ($70/hr) | React, TypeScript, Node.js, Tailwind |
+
+> 💡 **Marketplace Activity Included:** The database is pre-seeded with **10 Open projects** (with ranked bids ready for review), **4 In-Progress projects** (with active contracts), and **4 Completed projects** (with verified dual confirmations, star ratings, and written reviews).
 
 ---
 
