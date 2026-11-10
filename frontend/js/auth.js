@@ -190,40 +190,21 @@ function statusBadge(status) {
 /** Build skill chips with optional matching highlights */
 function skillChipsHTML(skills, matchedSkills = []) {
   const matchedSet = new Set(matchedSkills.map(s => s.toLowerCase()));
-  return skills.map(s =>
-    `<span class="skill-chip ${matchedSet.has(s.toLowerCase()) ? 'matched' : ''}">${s}</span>`
-  ).join('');
+  return skills.map(s => {
+    const isMatched = matchedSet.has(s.toLowerCase());
+    const prefix = isMatched ? '✓ ' : '';
+    return `<span class="skill-chip ${isMatched ? 'matched' : ''}">${prefix}${s}</span>`;
+  }).join('');
 }
 
-/** Build score breakdown bars */
-function scoreBreakdownHTML(matchScore, skillOverlap = null, priceScore = null, ratingScore = null) {
-  // Estimate component scores from composite if individual scores aren't available
-  const skill = skillOverlap !== null ? skillOverlap : Math.min(matchScore * 1.2, 1);
-  const price = priceScore !== null ? priceScore : Math.min(matchScore * 1.1, 1);
-  const rating = ratingScore !== null ? ratingScore : Math.min(matchScore * 0.9, 1);
-
+/** Build score display — single number + single accent bar */
+function scoreBreakdownHTML(matchScore) {
+  const pct = Math.round(matchScore * 100);
   return `
-    <div class="score-bar-group">
-      <div class="score-bar">
-        <span class="score-bar-label">Skill</span>
-        <div class="score-bar-track">
-          <div class="score-bar-fill skill" style="width: 0%" data-width="${Math.round(skill * 100)}%"></div>
-        </div>
-        <span class="score-bar-value">${Math.round(skill * 100)}%</span>
-      </div>
-      <div class="score-bar">
-        <span class="score-bar-label">Rating</span>
-        <div class="score-bar-track">
-          <div class="score-bar-fill rating" style="width: 0%" data-width="${Math.round(rating * 100)}%"></div>
-        </div>
-        <span class="score-bar-value">${Math.round(rating * 100)}%</span>
-      </div>
-      <div class="score-bar">
-        <span class="score-bar-label">Price</span>
-        <div class="score-bar-track">
-          <div class="score-bar-fill price" style="width: 0%" data-width="${Math.round(price * 100)}%"></div>
-        </div>
-        <span class="score-bar-value">${Math.round(price * 100)}%</span>
+    <div class="score-display">
+      <span class="score-number">${pct}</span>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" style="width: 0%" data-width="${pct}%"></div>
       </div>
     </div>
   `;

@@ -6,13 +6,14 @@
   <meta name="description" content="Client Dashboard — post projects, view ranked bids, accept proposals, and rate freelancers.">
   <title>Client Dashboard — BidForge</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar">
     <div class="container">
       <a href="/client.html" class="navbar-brand">
-        <div class="logo-icon">⚡</div>
+        <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
         BidForge
       </a>
       <div class="navbar-actions">
@@ -98,34 +99,34 @@
           <label class="form-label" for="proj-deadline">Deadline</label>
           <input class="form-input" type="datetime-local" id="proj-deadline" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-sm);">Post Project</button>
+        <button type="submit" class="btn btn-primary btn-lg btn-full">Post Project</button>
       </form>
     </div>
   </div>
 
   <!-- Ranked Bids Modal -->
   <div class="modal-overlay" id="bids-modal">
-    <div class="modal" style="max-width: 720px;">
+    <div class="modal modal-wide">
       <div class="modal-header">
-        <h2>🏆 Ranked Bids</h2>
+        <h2>Ranked Bids</h2>
         <button class="modal-close">✕</button>
       </div>
-      <div id="bids-list" style="display: flex; flex-direction: column; gap: var(--space-md); max-height: 60vh; overflow-y: auto;">
+      <div id="bids-list" class="bids-list-container">
       </div>
     </div>
   </div>
 
   <!-- Rating Modal -->
   <div class="modal-overlay" id="rating-modal">
-    <div class="modal" style="max-width: 440px;">
+    <div class="modal modal-xs">
       <div class="modal-header">
-        <h2>★ Rate Freelancer</h2>
+        <h2>Rate Freelancer</h2>
         <button class="modal-close">✕</button>
       </div>
       <form id="rating-form">
-        <div class="form-group" style="text-align: center;">
+        <div class="form-group rating-center">
           <label class="form-label">Your Rating</label>
-          <div style="font-size: 2rem; margin: var(--space-md) 0;">
+          <div class="rating-stars-lg">
             <span class="star-rating" data-rating="0" data-name="score">
               <span class="star" data-value="1">★</span>
               <span class="star" data-value="2">★</span>
@@ -139,7 +140,7 @@
           <label class="form-label" for="rating-review">Review (optional)</label>
           <textarea class="form-textarea" id="rating-review" placeholder="Share your experience working with this freelancer..."></textarea>
         </div>
-        <button type="submit" class="btn btn-gold btn-lg" style="width: 100%;">Submit Rating</button>
+        <button type="submit" class="btn btn-gold btn-lg btn-full">Submit Rating</button>
       </form>
     </div>
   </div>

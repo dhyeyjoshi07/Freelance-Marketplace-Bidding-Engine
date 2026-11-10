@@ -83,7 +83,7 @@ async function loadMyProjects() {
         ${p.status === 'in_progress' ? `<button class="btn btn-primary btn-sm" onclick="completeProject(${p.id})">
           ${p.client_completed ? '✓ Waiting for freelancer' : 'Mark Complete'}
         </button>` : ''}
-        ${p.status === 'completed' && !p.rated ? `<button class="btn btn-gold btn-sm" onclick="openRatingModal(${p.id})">★ Rate Freelancer</button>` : ''}
+        ${p.status === 'completed' && !p.rated ? `<button class="btn btn-gold btn-sm" onclick="openRatingModal(${p.id})">Rate Freelancer</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -116,12 +116,15 @@ async function viewBids(projectId) {
   // Store project ID for accept action
   modal.dataset.projectId = projectId;
 
-  container.innerHTML = bids.map((bid, i) => `
+  container.innerHTML = bids.map((bid, i) => {
+    const pct = Math.round(bid.match_score * 100);
+    const rankNum = bid.rank === 1
+      ? `<span class="text-accent2 fw-600">${pct}</span>`
+      : `<span class="text-muted fw-600">${pct}</span>`;
+
+    return `
     <div class="bid-card animate-in animate-in-delay-${Math.min(i, 4)}">
       <div class="rank-badge ${rankClass(bid.rank)}">${bid.rank}</div>
-      <div class="score-circle ${scoreClass(bid.match_score)}">
-        ${Math.round(bid.match_score * 100)}
-      </div>
       <div class="bid-info">
         <div class="bid-freelancer">
           <span>${escapeHTML(bid.freelancer_name)}</span>
@@ -140,7 +143,7 @@ async function viewBids(projectId) {
         </button>
       ` : ''}
     </div>
-  `).join('');
+  `}).join('');
 
   animateScoreBars();
 }

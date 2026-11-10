@@ -42,7 +42,7 @@ function renderProfileCard() {
     <div class="flex-between mb-md">
       <div>
         <h3>${getUsername()}</h3>
-        <p class="text-secondary text-sm">Freelancer</p>
+        <p class="text-muted text-sm">Freelancer</p>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="openModal('profile-modal')">Edit Profile</button>
     </div>
@@ -52,9 +52,9 @@ function renderProfileCard() {
     </div>
     <div class="mb-md">
       <span class="text-muted text-xs">RATING</span>
-      <div class="flex-gap" style="align-items: center; gap: 0.5rem;">
+      <div class="flex-gap">
         ${starDisplayHTML(currentProfile.avg_rating || 0)}
-        <span class="text-sm text-secondary">${(currentProfile.avg_rating || 0).toFixed(1)} (${currentProfile.total_ratings || 0} reviews)</span>
+        <span class="text-sm text-muted">${(currentProfile.avg_rating || 0).toFixed(1)} (${currentProfile.total_ratings || 0} reviews)</span>
       </div>
     </div>
     <div>
@@ -220,7 +220,9 @@ async function loadMyBids() {
     let bidStatus = 'pending';
     if (project?.status === 'completed' && isAccepted) bidStatus = 'completed';
     else if (project?.status === 'in_progress' && isAccepted) bidStatus = 'in-progress';
-    else if (project?.status !== 'open' && !isAccepted) bidStatus = 'not selected';
+    else if (project?.status !== 'open' && !isAccepted) bidStatus = 'not-selected';
+
+    const pct = Math.round(bid.match_score * 100);
 
     bidCards.push(`
       <div class="glass-card animate-in" style="padding: var(--space-lg);">
@@ -231,14 +233,12 @@ async function loadMyBids() {
           </div>
           <div style="text-align: right;">
             <div class="bid-amount">${formatCurrency(bid.amount)}</div>
-            <div class="score-circle ${scoreClass(bid.match_score)}" style="width: 36px; height: 36px; font-size: 0.75rem; display: inline-flex; margin-top: 0.25rem;">
-              ${Math.round(bid.match_score * 100)}
-            </div>
+            <span class="text-muted text-sm fw-600">${pct}%</span>
           </div>
         </div>
-        ${bid.proposal ? `<p class="text-sm text-secondary mb-md">${escapeHTML(bid.proposal)}</p>` : ''}
+        ${bid.proposal ? `<p class="text-sm text-muted mb-md">${escapeHTML(bid.proposal)}</p>` : ''}
         <div class="flex-between">
-          <span class="badge badge-${bidStatus.replace(' ', '-')}">${bidStatus}</span>
+          <span class="badge badge-${bidStatus}">${bidStatus.replace('-', ' ')}</span>
           ${bidStatus === 'in-progress' ? `
             <button class="btn btn-primary btn-sm" onclick="completeFreelancerProject(${bid.project_id})">
               ${project?.freelancer_completed ? '✓ Waiting for client' : 'Mark Complete'}

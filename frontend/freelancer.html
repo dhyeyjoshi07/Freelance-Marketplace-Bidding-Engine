@@ -6,13 +6,14 @@
   <meta name="description" content="Freelancer Dashboard — browse projects, submit bids, track proposals, and manage your profile.">
   <title>Freelancer Dashboard — BidForge</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar">
     <div class="container">
       <a href="/freelancer.html" class="navbar-brand">
-        <div class="logo-icon">⚡</div>
+        <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
         BidForge
       </a>
       <div class="navbar-actions">
@@ -53,7 +54,7 @@
     </div>
 
     <!-- Two Column Layout -->
-    <div class="grid-2" style="align-items: flex-start;">
+    <div class="grid-2">
       <!-- Left: Tabs for Projects & Bids -->
       <div>
         <div>
@@ -65,7 +66,7 @@
           <!-- Browse Projects Tab -->
           <div class="tab-content active" id="tab-browse">
             <div class="section-header">
-              <h2 style="font-size: 1.1rem;">Open Projects</h2>
+              <h2 class="tab-section-heading">Open Projects</h2>
               <button class="btn btn-secondary btn-sm" onclick="loadOpenProjects()">↻ Refresh</button>
             </div>
             <div id="open-projects-list" class="projects-list">
@@ -76,7 +77,7 @@
           <!-- My Bids Tab -->
           <div class="tab-content" id="tab-bids">
             <div class="section-header">
-              <h2 style="font-size: 1.1rem;">My Bids</h2>
+              <h2 class="tab-section-heading">My Bids</h2>
               <button class="btn btn-secondary btn-sm" onclick="loadMyBids()">↻ Refresh</button>
             </div>
             <div id="my-bids-list" class="projects-list">
@@ -97,17 +98,17 @@
 
   <!-- Submit Bid Modal -->
   <div class="modal-overlay" id="bid-modal">
-    <div class="modal" style="max-width: 480px;">
+    <div class="modal modal-sm">
       <div class="modal-header">
         <h2>Submit Bid</h2>
         <button class="modal-close">✕</button>
       </div>
-      <div style="margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--bg-surface-2); border-radius: var(--radius-md);">
+      <div class="bid-project-info">
         <p class="text-sm text-muted">PROJECT</p>
         <p class="fw-600" id="bid-project-title"></p>
         <p class="text-sm mt-sm">
           <span class="text-muted">Budget: </span>
-          <span class="text-emerald fw-600" id="bid-budget-range"></span>
+          <span class="text-accent fw-600" id="bid-budget-range"></span>
         </p>
       </div>
       <form id="bid-form">
@@ -119,14 +120,14 @@
           <label class="form-label" for="bid-proposal">Proposal</label>
           <textarea class="form-textarea" id="bid-proposal" placeholder="Why are you the best fit for this project? Highlight your relevant experience..."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Submit Bid</button>
+        <button type="submit" class="btn btn-primary btn-lg btn-full">Submit Bid</button>
       </form>
     </div>
   </div>
 
   <!-- Edit Profile Modal -->
   <div class="modal-overlay" id="profile-modal">
-    <div class="modal" style="max-width: 480px;">
+    <div class="modal modal-sm">
       <div class="modal-header">
         <h2>Edit Profile</h2>
         <button class="modal-close">✕</button>
@@ -141,7 +142,7 @@
           <label class="form-label" for="profile-rate">Hourly Rate ($)</label>
           <input class="form-input" type="number" id="profile-rate" min="1" step="1" placeholder="65" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Save Profile</button>
+        <button type="submit" class="btn btn-primary btn-lg btn-full">Save Profile</button>
       </form>
     </div>
   </div>
