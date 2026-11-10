@@ -12,7 +12,7 @@
 ![Tests](https://img.shields.io/badge/tests-106-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Overview](#-overview) · [Quick Start](#-quick-start) · [How Ranking Works](#-how-ranking-works) · [API](#-api-reference) · [DBMS Topics](#-dbms-syllabus-coverage) · [Testing](#-testing)
+[Overview](#-overview) · [Quick Start](#-quick-start) · [How Ranking Works](#-how-ranking-works) · [API](#-api-reference) · [OOP Design](#-oop-design--data-structures) · [DBMS Topics](#-dbms-syllabus-coverage) · [Testing](#-testing)
 
 </div>
 
@@ -250,7 +250,8 @@ freelance-marketplace/
 │       ├── client.js            # Client dashboard logic
 │       └── freelancer.js        # Freelancer dashboard logic
 ├── docs/
-│   └── dbms.md                  # DBMS syllabus coverage (all 9 units)
+│   ├── dbms.md                  # DBMS syllabus coverage (all 9 units)
+│   └── oops.md                  # OOP concepts demonstrated in the codebase
 ├── scripts/sql/                 # Raw SQL reference scripts
 │   ├── ddl.sql                  # CREATE TABLE, ALTER, constraints
 │   ├── dml.sql                  # SELECT, INSERT, UPDATE, DELETE, JOINs, subqueries
@@ -265,7 +266,6 @@ freelance-marketplace/
 │   └── test_dbms.py             # 15 DBMS feature tests (constraints, transactions, encryption)
 ├── seed.py                      # Demo data seeder
 ├── run.py                       # uvicorn launcher
-├── report.tex                   # LaTeX project report
 ├── requirements.txt
 └── LICENSE                      # MIT License
 ```
@@ -310,54 +310,18 @@ users (id, username, email, password_hash, role, created_at)
 ## 🧠 OOP Design & Data Structures
 
 | Concept | Where | Summary |
-|---------|-------|---------| 
-| **Abstraction & Inheritance** | `UserBase` (ABC) | `ClientUser` and `FreelancerUser` implement abstract `get_role()`; used in the service layer for polymorphic role checks |
-| **Polymorphism** | `MatchEngine` | Overridable scoring components; `WeightedSkillMatchEngine` overrides skill overlap |
+|---------|-------|---------|
+| **Abstraction & Inheritance** | `UserBase` (ABC) → `ClientUser` / `FreelancerUser` | Abstract `get_role()` enforces role contract; `MatchEngine` → `WeightedSkillMatchEngine` for custom scoring |
+| **Polymorphism** | `MatchEngine._compute_skill_overlap()` | Overridable scoring components; factory method `User.get_user_type()` returns correct subclass |
+| **Encapsulation** | `Project` status machine | Status changes only via validated `accept_bid()` / `mark_completed_by()` methods |
 | **Operator overloading** | `BidRanked.__lt__` / `__gt__` | Inverted comparison so `sorted()` and `heapq` yield highest score first |
-| **Exception handling** | `exceptions.py` | 4 custom exceptions mapped to HTTP responses (see below) |
-| **Encapsulation** | `Project` status machine | Status changes only via validated methods |
-| **Containers** | `RankedBidQueue` | `heapq`-backed priority queue with lazy deletion |
+| **Dataclass** | `BidRanked` | `@dataclass(order=False)` with custom dunder methods |
+| **Composition** | `User` → `FreelancerProfile`, `Project`, `Bid` | `cascade="all, delete-orphan"` — children can't exist without parent |
+| **Design Patterns** | Factory, Strategy, Singleton, DI, Template Method | See [docs/oops.md](docs/oops.md) §12 for details |
+| **Custom Exceptions** | `exceptions.py` | 5 domain exceptions mapped to HTTP status codes |
+| **Containers** | `RankedBidQueue` | `heapq`-backed priority queue with O(1) lazy deletion |
 
-<details>
-<summary><b>🔀 Operator overloading: the inversion trick</b></summary>
-
-`BidRanked` is a `@dataclass` with **inverted** comparison operators:
-
-```python
-def __lt__(self, other):
-    return self.match_score > other.match_score  # higher = "less than"
-```
-
-Because of this:
-- `sorted(bids)` returns highest-score-first
-- `heapq` (a min-heap) pops the highest-score bid first
-
-</details>
-
-<details>
-<summary><b>🚨 Custom exceptions</b></summary>
-
-| Exception | When raised | HTTP status |
-|-----------|-------------|:-----------:|
-| `BidOnExpiredProjectError` | Bidding on a closed or past-deadline project | 400 |
-| `DuplicateBidError` | Same freelancer bids twice on one project | 409 |
-| `InvalidBudgetError` | `budget_min ≥ budget_max` or negative values | 400 |
-| `InvalidStatusTransitionError` | Illegal state change (e.g., Open → Completed) | 400 |
-
-Each is raised in the model/service layer and caught in the router layer to produce the correct HTTP response.
-
-</details>
-
-<details>
-<summary><b>🔒 Project status machine</b></summary>
-
-```
-Open ──accept_bid()──▶ InProgress ──mark_completed_by()──▶ Completed
-```
-
-Status is **never mutated directly**. All transitions go through validated methods that check the current state and raise `InvalidStatusTransitionError` on illegal transitions. Both client and freelancer must call `mark_completed_by()` before the project becomes `Completed`.
-
-</details>
+📖 **Full OOP documentation:** [`docs/oops.md`](docs/oops.md) — covers all 16 OOP concepts with code examples, class diagram, and line references.
 
 <details>
 <summary><b>⚡ RankedBidQueue complexity</b></summary>
@@ -369,8 +333,6 @@ Status is **never mutated directly**. All transitions go through validated metho
 | Full ranking | O(n log n) | `sorted()` on active entries |
 | Remove | O(1) | Lazy deletion via `_index` dict |
 | Batch construction | O(n) | `heapq.heapify` in `from_bids()` factory |
-
-The `_index` dict provides O(1) bid lookup by ID and enables lazy deletion without restructuring the heap.
 
 </details>
 
