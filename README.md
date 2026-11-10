@@ -34,16 +34,14 @@ A full-stack marketplace platform with a **composite scoring engine** that ranks
 
 ## 🏗️ Architecture
 
-```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Frontend   │────▶│  FastAPI      │────▶│  SQLAlchemy   │────▶│   MySQL     │
-│  HTML/JS/CSS │◀────│  Routers      │◀────│  ORM          │◀────│   InnoDB    │
-└─────────────┘     └──────┬───────┘     └──────────────┘     └─────────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        MatchEngine   AuthService   EncryptionService
-        (scoring)     (JWT/bcrypt)  (AES-256/Fernet)
+```mermaid
+flowchart LR
+    A["Frontend\nHTML / JS / CSS"] <--> B["FastAPI\nRouters"]
+    B <--> C["SQLAlchemy\nORM"]
+    C <--> D["MySQL\nInnoDB"]
+    B --> E["MatchEngine\n(scoring)"]
+    B --> F["AuthService\n(JWT / bcrypt)"]
+    B --> G["EncryptionService\n(AES-256 / Fernet)"]
 ```
 
 ### Tech Stack
@@ -70,8 +68,7 @@ A full-stack marketplace platform with a **composite scoring engine** that ranks
 | **Stored procedures** | `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()` push ranking and aggregation logic to the database layer |
 | **Module-level singleton** | Fernet cipher instantiated once at import; avoids repeated key derivation |
 
-<details>
-<summary><b>📂 Project Structure</b></summary>
+### Project Structure
 
 ```
 bidforge/
@@ -112,10 +109,7 @@ bidforge/
 └── LICENSE
 ```
 
-</details>
-
-<details>
-<summary><b>🗄️ Database Schema</b> (6 tables, MySQL InnoDB)</summary>
+### Database Schema (6 tables, MySQL InnoDB)
 
 ```
 users (id, username, email, password_hash, role, created_at)
@@ -140,10 +134,10 @@ users (id, username, email, password_hash, role, created_at)
 ```
 
 **Triggers:** `trg_before_insert_bid`, `trg_before_insert_project`, `trg_after_insert_rating`, `trg_after_update_project_status`
-**Indexes:** `idx_bids_project_score` (covering), `idx_bids_freelancer`, `idx_projects_status`, `idx_projects_client`, `idx_ratings_freelancer`
-**Stored Procs:** `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()`
 
-</details>
+**Indexes:** `idx_bids_project_score` (covering), `idx_bids_freelancer`, `idx_projects_status`, `idx_projects_client`, `idx_ratings_freelancer`
+
+**Stored Procs:** `sp_get_ranked_bids()`, `sp_freelancer_stats()`, `sp_bid_summary_cursor()`
 
 ---
 
@@ -183,8 +177,7 @@ python3 run.py
 
 Open **http://localhost:8000** → register or use a demo account below.
 
-<details>
-<summary><b>Demo accounts (after seeding)</b></summary>
+### Demo Accounts (after seeding)
 
 | Role | Username | Password |
 |------|----------|----------|
@@ -194,14 +187,11 @@ Open **http://localhost:8000** → register or use a demo account below.
 | Freelancer | `dev_charlie` | `password123` |
 | Freelancer | `dev_bob` | `password123` |
 
-</details>
-
 ---
 
 ## 🔌 API Reference
 
-<details>
-<summary><b>Auth</b> — registration, JWT login, profile</summary>
+### Auth — registration, JWT login, profile
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -209,10 +199,7 @@ Open **http://localhost:8000** → register or use a demo account below.
 | POST | `/api/auth/login` | Authenticate, returns JWT |
 | GET | `/api/auth/me` | Current user profile |
 
-</details>
-
-<details>
-<summary><b>Projects</b> — CRUD, bid acceptance, dual-completion</summary>
+### Projects — CRUD, bid acceptance, dual-completion
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -224,10 +211,7 @@ Open **http://localhost:8000** → register or use a demo account below.
 | POST | `/api/projects/{id}/complete` | Mark complete (dual-confirm) |
 | POST | `/api/projects/{id}/rate` | Rate freelancer (1–5) |
 
-</details>
-
-<details>
-<summary><b>Bids</b> — submission and ranked listing</summary>
+### Bids — submission and ranked listing
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -235,20 +219,14 @@ Open **http://localhost:8000** → register or use a demo account below.
 | GET | `/api/projects/{id}/bids` | Ranked bid list |
 | GET | `/api/freelancers/me/bids` | Freelancer's own bids |
 
-</details>
-
-<details>
-<summary><b>Freelancers</b> — profile management</summary>
+### Freelancers — profile management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/freelancers/me` | View profile |
 | PUT | `/api/freelancers/me` | Update skills / hourly rate |
 
-</details>
-
-<details>
-<summary><b>Admin</b> — database introspection and diagnostics</summary>
+### Admin — database introspection and diagnostics
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -262,8 +240,6 @@ Open **http://localhost:8000** → register or use a demo account below.
 | GET | `/api/admin/stored-procedures` | List stored procedures |
 | GET | `/api/admin/constraints?table_name=...` | List constraints |
 | POST | `/api/admin/encrypt?plaintext=...` | AES-256 encrypt/decrypt |
-
-</details>
 
 ---
 
