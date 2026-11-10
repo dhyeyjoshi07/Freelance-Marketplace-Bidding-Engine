@@ -18,12 +18,29 @@
   const STORAGE_KEY = 'theme';
   const DEFAULT     = 'deep-teal';
 
-  /** Apply a theme immediately (no reflow needed). */
+  /** Apply a theme immediately. */
   function applyTheme(id) {
     if (!THEMES.find(t => t.id === id)) id = DEFAULT;
     document.documentElement.setAttribute('data-theme', id);
+    if (document.body) document.body.setAttribute('data-theme', id);
     try { localStorage.setItem(STORAGE_KEY, id); } catch (_) {}
+
+    // Update active class on all swatch buttons across the page
+    document.querySelectorAll('.theme-swatch').forEach(s => {
+      const isActive = s.dataset.theme === id;
+      s.classList.toggle('active', isActive);
+      s.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    // Dispatch event for any listeners
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: id } }));
   }
+
+  // Expose on window for programmatic access / debugging
+  window.setTheme = applyTheme;
+  window.getTheme = function () {
+    return document.documentElement.getAttribute('data-theme') || DEFAULT;
+  };
 
   // Apply saved (or default) theme as early as possible.
   const saved = (function () {
@@ -31,7 +48,7 @@
   })();
   applyTheme(saved || DEFAULT);
 
-  /** Build the switcher UI and inject it into the page. */
+  /** Build the switcher UI element. */
   function buildSwitcher() {
     const current = document.documentElement.getAttribute('data-theme') || DEFAULT;
 
@@ -48,22 +65,19 @@
       btn.setAttribute('aria-pressed', t.id === current ? 'true' : 'false');
       btn.title = t.name;
       btn.dataset.theme = t.id;
-      // Swatch always shows its own colours regardless of active theme
-      btn.style.background = t.bg;
+
+      // Swatch displays its theme's background and accent
+      btn.style.backgroundColor = t.bg;
       btn.style.color = t.accent;
-      // Inner dot in accent colour
+
       const dot = document.createElement('span');
       dot.className = 'swatch-dot';
-      dot.style.background = t.accent;
+      dot.style.backgroundColor = t.accent;
       btn.appendChild(dot);
 
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
         applyTheme(t.id);
-        wrapper.querySelectorAll('.theme-swatch').forEach(s => {
-          const isActive = s.dataset.theme === t.id;
-          s.classList.toggle('active', isActive);
-          s.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
       });
 
       wrapper.appendChild(btn);
@@ -72,8 +86,11 @@
     return wrapper;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // Dashboard pages: place before the navbar-user element
+  function mountSwitcher() {
+    // Avoid double mounting
+    if (document.querySelector('.theme-switcher')) return;
+
+    // Dashboard pages: place before navbar-user
     const navActions = document.querySelector('.navbar-actions');
     const navUser    = document.querySelector('.navbar-user');
     if (navActions && navUser) {
@@ -89,6 +106,12 @@
       corner.appendChild(buildSwitcher());
       authPage.appendChild(corner);
     }
-  });
-})();
+  }
 
+  // Mount when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountSwitcher);
+  } else {
+    mountSwitcher();
+  }
+})();
