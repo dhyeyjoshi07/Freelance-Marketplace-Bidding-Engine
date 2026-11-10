@@ -281,4 +281,12 @@ python3 -m pytest tests/test_api.py -v   # integration only
 
 ## 📄 License
 
-MIT — see [`LICENSE`](LICENSE).
+This project is licensed under the **MIT License** — you're free to use, modify, and distribute it for personal or commercial purposes. See the [`LICENSE`](LICENSE) file for full terms.
+
+---
+
+<div align="center">
+
+**Built with** &nbsp; 🐍 Python &nbsp;·&nbsp; ⚡ FastAPI &nbsp;·&nbsp; 🐬 MySQL
+
+</div>
