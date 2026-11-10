@@ -700,3 +700,4 @@ class RankedBidQueue:
 | Decorators | `@abstractmethod`, `@dataclass`, `@staticmethod`, `@classmethod`, `@router.*` |
 | Static Methods | `Project.validate_budget()` |
 | Class Methods | `RankedBidQueue.from_bids()` |
+
