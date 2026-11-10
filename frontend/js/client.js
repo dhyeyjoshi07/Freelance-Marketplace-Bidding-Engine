@@ -14,28 +14,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initTabs();
   initModals();
-  loadStats();
   loadMyProjects();
   setupCreateProjectForm();
   setupRatingForm();
 });
 
-// --- Stats ---
+// --- Stats Helpers ---
 
-async function loadStats() {
-  const res = await projectsAPI.my();
-  if (!res.ok) return;
-
-  const projects = res.data;
+function updateClientStats(projects) {
+  if (!Array.isArray(projects)) return;
   const open = projects.filter(p => p.status === 'open').length;
   const inProgress = projects.filter(p => p.status === 'in_progress').length;
   const completed = projects.filter(p => p.status === 'completed').length;
   const totalBids = projects.reduce((sum, p) => sum + (p.bid_count || 0), 0);
 
-  document.getElementById('stat-open').textContent = open;
-  document.getElementById('stat-progress').textContent = inProgress;
-  document.getElementById('stat-completed').textContent = completed;
-  document.getElementById('stat-bids').textContent = totalBids;
+  const elOpen = document.getElementById('stat-open');
+  const elProg = document.getElementById('stat-progress');
+  const elComp = document.getElementById('stat-completed');
+  const elBids = document.getElementById('stat-bids');
+
+  if (elOpen) elOpen.textContent = open;
+  if (elProg) elProg.textContent = inProgress;
+  if (elComp) elComp.textContent = completed;
+  if (elBids) elBids.textContent = totalBids;
 }
 
 // --- My Projects ---
@@ -46,11 +47,13 @@ async function loadMyProjects() {
 
   const res = await projectsAPI.my();
   if (!res.ok) {
-    container.innerHTML = `<div class="empty-state"><p>${res.error}</p></div>`;
+    container.innerHTML = `<div class="empty-state"><p>${escapeHTML(res.error)}</p></div>`;
     return;
   }
 
   const projects = res.data;
+  updateClientStats(projects);
+
   if (projects.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -80,10 +83,10 @@ async function loadMyProjects() {
       </div>
       <div class="flex-between mt-sm">
         ${p.bid_count > 0 ? `<button class="btn btn-secondary btn-sm" onclick="viewBids(${p.id})">View Ranked Bids</button>` : '<span></span>'}
-        ${p.status === 'in_progress' ? `<button class="btn btn-primary btn-sm" onclick="completeProject(${p.id})">
+        ${p.status === 'in_progress' ? `<button class="btn btn-primary btn-sm" id="btn-complete-${p.id}" onclick="completeProject(${p.id})">
           ${p.client_completed ? '✓ Waiting for freelancer' : 'Mark Complete'}
         </button>` : ''}
-        ${p.status === 'completed' && !p.rated ? `<button class="btn btn-gold btn-sm" onclick="openRatingModal(${p.id})">Rate Freelancer</button>` : ''}
+        ${p.status === 'completed' && !p.rated ? `<button class="btn btn-gold btn-sm" onclick="openRatingModal(${p.id})">★ Rate Freelancer</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -103,7 +106,7 @@ async function viewBids(projectId) {
 
   const res = await bidsAPI.listRanked(projectId);
   if (!res.ok) {
-    container.innerHTML = `<div class="empty-state"><p>${res.error}</p></div>`;
+    container.innerHTML = `<div class="empty-state"><p>${escapeHTML(res.error)}</p></div>`;
     return;
   }
 
@@ -116,15 +119,12 @@ async function viewBids(projectId) {
   // Store project ID for accept action
   modal.dataset.projectId = projectId;
 
-  container.innerHTML = bids.map((bid, i) => {
-    const pct = Math.round(bid.match_score * 100);
-    const rankNum = bid.rank === 1
-      ? `<span class="text-accent2 fw-600">${pct}</span>`
-      : `<span class="text-muted fw-600">${pct}</span>`;
-
-    return `
+  container.innerHTML = bids.map((bid, i) => `
     <div class="bid-card animate-in animate-in-delay-${Math.min(i, 4)}">
       <div class="rank-badge ${rankClass(bid.rank)}">${bid.rank}</div>
+      <div class="score-circle ${scoreClass(bid.match_score)}">
+        ${Math.round(bid.match_score * 100)}
+      </div>
       <div class="bid-info">
         <div class="bid-freelancer">
           <span>${escapeHTML(bid.freelancer_name)}</span>
@@ -138,12 +138,12 @@ async function viewBids(projectId) {
         ${scoreBreakdownHTML(bid.match_score)}
       </div>
       ${project?.status === 'open' ? `
-        <button class="btn btn-primary btn-sm" onclick="acceptBid(${projectId}, ${bid.bid_id})">
+        <button class="btn btn-primary btn-sm btn-accept" id="btn-accept-${bid.bid_id}" onclick="acceptBid(${projectId}, ${bid.bid_id})">
           Accept
         </button>
       ` : ''}
     </div>
-  `}).join('');
+  `).join('');
 
   animateScoreBars();
 }
@@ -151,33 +151,55 @@ async function viewBids(projectId) {
 // --- Accept Bid ---
 
 async function acceptBid(projectId, bidId) {
-  if (!confirm('Accept this bid? The project will move to "In Progress".')) return;
+  const btn = document.getElementById(`btn-accept-${bidId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+  }
 
-  const res = await projectsAPI.acceptBid(projectId, bidId);
-  if (res.ok) {
-    showToast('Bid accepted! Project is now in progress.', 'success');
-    closeModal('bids-modal');
-    loadMyProjects();
-    loadStats();
-  } else {
-    showToast(res.error, 'error');
+  try {
+    const res = await projectsAPI.acceptBid(projectId, bidId);
+    if (res.ok) {
+      showToast('Bid accepted! Project is now in progress.', 'success');
+      closeModal('bids-modal');
+      loadMyProjects();
+    } else {
+      showToast(res.error, 'error');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+    }
   }
 }
 
 // --- Complete Project ---
 
 async function completeProject(projectId) {
-  const res = await projectsAPI.complete(projectId);
-  if (res.ok) {
-    if (res.data.status === 'completed') {
-      showToast('Project marked as completed!', 'success');
+  const btn = document.getElementById(`btn-complete-${projectId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+  }
+
+  try {
+    const res = await projectsAPI.complete(projectId);
+    if (res.ok) {
+      if (res.data.status === 'completed') {
+        showToast('Project marked as completed!', 'success');
+      } else {
+        showToast('Your confirmation recorded. Waiting for the other party.', 'info');
+      }
+      loadMyProjects();
     } else {
-      showToast('Your confirmation recorded. Waiting for the other party.', 'info');
+      showToast(res.error, 'error');
     }
-    loadMyProjects();
-    loadStats();
-  } else {
-    showToast(res.error, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+    }
   }
 }
 
@@ -185,6 +207,8 @@ async function completeProject(projectId) {
 
 function setupCreateProjectForm() {
   const form = document.getElementById('create-project-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -200,15 +224,22 @@ function setupCreateProjectForm() {
       deadline: new Date(document.getElementById('proj-deadline').value).toISOString(),
     };
 
-    const res = await projectsAPI.create(body);
-    if (res.ok) {
-      showToast('Project posted successfully!', 'success');
-      closeModal('create-project-modal');
-      form.reset();
-      loadMyProjects();
-      loadStats();
-    } else {
-      showToast(res.error, 'error');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('btn-loading');
+
+    try {
+      const res = await projectsAPI.create(body);
+      if (res.ok) {
+        showToast('Project posted successfully!', 'success');
+        closeModal('create-project-modal');
+        form.reset();
+        loadMyProjects();
+      } else {
+        showToast(res.error, 'error');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-loading');
     }
   });
 }
@@ -225,6 +256,8 @@ function openRatingModal(projectId) {
 
 function setupRatingForm() {
   const form = document.getElementById('rating-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -237,22 +270,22 @@ function setupRatingForm() {
 
     const review = document.getElementById('rating-review').value;
 
-    const res = await projectsAPI.rate(ratingProjectId, { score, review });
-    if (res.ok) {
-      showToast('Rating submitted! Thank you.', 'success');
-      closeModal('rating-modal');
-      form.reset();
-      loadMyProjects();
-    } else {
-      showToast(res.error, 'error');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('btn-loading');
+
+    try {
+      const res = await projectsAPI.rate(ratingProjectId, { score, review });
+      if (res.ok) {
+        showToast('Rating submitted! Thank you.', 'success');
+        closeModal('rating-modal');
+        form.reset();
+        loadMyProjects();
+      } else {
+        showToast(res.error, 'error');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-loading');
     }
   });
-}
-
-// --- Utility ---
-
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }

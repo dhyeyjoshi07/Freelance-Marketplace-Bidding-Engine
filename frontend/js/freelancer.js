@@ -15,9 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initModals();
   loadProfile();
-  loadStats();
+  loadFreelancerData();
   loadOpenProjects();
-  loadMyBids();
   setupProfileForm();
   setupBidForm();
 });
@@ -41,10 +40,10 @@ function renderProfileCard() {
   el.innerHTML = `
     <div class="flex-between mb-md">
       <div>
-        <h3>${getUsername()}</h3>
-        <p class="text-muted text-sm">Freelancer</p>
+        <h3>${escapeHTML(getUsername())}</h3>
+        <p class="text-secondary text-sm">Freelancer</p>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="openModal('profile-modal')">Edit Profile</button>
+      <button class="btn btn-secondary btn-sm" onclick="openProfileModal()">Edit Profile</button>
     </div>
     <div class="mb-md">
       <span class="text-muted text-xs">HOURLY RATE</span>
@@ -52,9 +51,9 @@ function renderProfileCard() {
     </div>
     <div class="mb-md">
       <span class="text-muted text-xs">RATING</span>
-      <div class="flex-gap">
+      <div class="flex-gap" style="align-items: center; gap: 0.5rem;">
         ${starDisplayHTML(currentProfile.avg_rating || 0)}
-        <span class="text-sm text-muted">${(currentProfile.avg_rating || 0).toFixed(1)} (${currentProfile.total_ratings || 0} reviews)</span>
+        <span class="text-sm text-secondary">${(currentProfile.avg_rating || 0).toFixed(1)} (${currentProfile.total_ratings || 0} reviews)</span>
       </div>
     </div>
     <div>
@@ -69,138 +68,92 @@ function renderProfileCard() {
   `;
 }
 
-// --- Stats ---
+function openProfileModal() {
+  if (currentProfile) {
+    document.getElementById('profile-skills').value = (currentProfile.skills || []).join(', ');
+    document.getElementById('profile-rate').value = currentProfile.hourly_rate || '';
+  }
+  openModal('profile-modal');
+}
 
-async function loadStats() {
+// --- Project Cache & Batch Loading (Eliminates N+1 queries) ---
+
+const projectCache = new Map();
+
+async function getProjectsByIds(ids) {
+  const missing = ids.filter(id => !projectCache.has(id));
+  if (missing.length > 0) {
+    const responses = await Promise.all(missing.map(id => projectsAPI.get(id)));
+    responses.forEach((res, i) => {
+      if (res.ok) projectCache.set(missing[i], res.data);
+    });
+  }
+  return projectCache;
+}
+
+// --- Combined Stats & My Bids Loader ---
+
+async function loadFreelancerData() {
+  const container = document.getElementById('my-bids-list');
+  if (container) {
+    container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  }
+
   const bidsRes = await bidsAPI.myBids();
-  const bids = bidsRes.ok ? bidsRes.data : [];
+  if (!bidsRes.ok) {
+    if (container) {
+      container.innerHTML = `<div class="empty-state"><p>${escapeHTML(bidsRes.error)}</p></div>`;
+    }
+    return;
+  }
 
-  document.getElementById('stat-bids').textContent = bids.length;
-
-  // Count active (bids on in_progress projects)
-  // For simplicity, show total bids and we'll enrich later
+  const bids = bidsRes.data;
   const projectIds = [...new Set(bids.map(b => b.project_id))];
+
+  // Batch fetch all required project records concurrently
+  await getProjectsByIds(projectIds);
+
+  renderStats(bids);
+  renderMyBids(bids);
+}
+
+function renderStats(bids) {
+  const elBids = document.getElementById('stat-bids');
+  const elActive = document.getElementById('stat-active');
+  const elCompleted = document.getElementById('stat-completed');
+  const elEarned = document.getElementById('stat-earned');
+
+  if (elBids) elBids.textContent = bids.length;
+
   let active = 0;
   let completed = 0;
   let earned = 0;
 
-  for (const pid of projectIds) {
-    const pRes = await projectsAPI.get(pid);
-    if (pRes.ok) {
-      if (pRes.data.status === 'in_progress' && pRes.data.accepted_bid_id) {
-        const acceptedBid = bids.find(b => b.id === pRes.data.accepted_bid_id);
-        if (acceptedBid) { active++; earned += acceptedBid.amount; }
-      }
-      if (pRes.data.status === 'completed' && pRes.data.accepted_bid_id) {
-        const acceptedBid = bids.find(b => b.id === pRes.data.accepted_bid_id);
-        if (acceptedBid) { completed++; earned += acceptedBid.amount; }
+  for (const bid of bids) {
+    const project = projectCache.get(bid.project_id);
+    if (!project) continue;
+
+    const isAccepted = project.accepted_bid_id === bid.id;
+    if (isAccepted) {
+      if (project.status === 'in_progress') {
+        active++;
+        earned += bid.amount;
+      } else if (project.status === 'completed') {
+        completed++;
+        earned += bid.amount;
       }
     }
   }
 
-  document.getElementById('stat-active').textContent = active;
-  document.getElementById('stat-completed').textContent = completed;
-  document.getElementById('stat-earned').textContent = formatCurrency(earned);
+  if (elActive) elActive.textContent = active;
+  if (elCompleted) elCompleted.textContent = completed;
+  if (elEarned) elEarned.textContent = formatCurrency(earned);
 }
 
-// --- Browse Open Projects ---
-
-async function loadOpenProjects() {
-  const container = document.getElementById('open-projects-list');
-  container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
-
-  const res = await projectsAPI.listAll();
-  if (!res.ok) {
-    container.innerHTML = `<div class="empty-state"><p>${res.error}</p></div>`;
-    return;
-  }
-
-  const projects = res.data;
-  if (projects.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>No open projects at the moment. Check back soon!</p>
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = projects.map((p, i) => `
-    <div class="glass-card project-card animate-in animate-in-delay-${Math.min(i, 4)}">
-      <div class="project-header">
-        <div>
-          <h3 class="project-title">${escapeHTML(p.title)}</h3>
-          <span class="text-sm text-muted">by ${escapeHTML(p.client_name || 'Client')}</span>
-        </div>
-        ${statusBadge(p.status)}
-      </div>
-      <p class="project-description">${escapeHTML(p.description || 'No description provided.')}</p>
-      <div class="flex-gap">
-        ${skillChipsHTML(p.required_skills || [], currentProfile?.skills || [])}
-      </div>
-      <div class="project-meta">
-        <span>💰 ${formatCurrency(p.budget_min)} – ${formatCurrency(p.budget_max)}</span>
-        <span>📅 ${formatDate(p.deadline)}</span>
-        <span>📨 ${p.bid_count || 0} bids</span>
-      </div>
-      <div>
-        <button class="btn btn-primary btn-sm" onclick="openBidModal(${p.id}, '${escapeHTML(p.title)}', ${p.budget_min}, ${p.budget_max})">
-          Submit Bid
-        </button>
-      </div>
-    </div>
-  `).join('');
-}
-
-// --- Submit Bid ---
-
-let bidProjectId = null;
-
-function openBidModal(projectId, title, budgetMin, budgetMax) {
-  bidProjectId = projectId;
-  document.getElementById('bid-project-title').textContent = title;
-  document.getElementById('bid-budget-range').textContent =
-    `${formatCurrency(budgetMin)} – ${formatCurrency(budgetMax)}`;
-  openModal('bid-modal');
-}
-
-function setupBidForm() {
-  const form = document.getElementById('bid-form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const body = {
-      amount: parseFloat(document.getElementById('bid-amount').value),
-      proposal: document.getElementById('bid-proposal').value,
-    };
-
-    const res = await bidsAPI.submit(bidProjectId, body);
-    if (res.ok) {
-      showToast(`Bid submitted! Match score: ${Math.round(res.data.match_score * 100)}%`, 'success');
-      closeModal('bid-modal');
-      form.reset();
-      loadOpenProjects();
-      loadMyBids();
-      loadStats();
-    } else {
-      showToast(res.error, 'error');
-    }
-  });
-}
-
-// --- My Bids ---
-
-async function loadMyBids() {
+function renderMyBids(bids) {
   const container = document.getElementById('my-bids-list');
-  container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  if (!container) return;
 
-  const res = await bidsAPI.myBids();
-  if (!res.ok) {
-    container.innerHTML = `<div class="empty-state"><p>${res.error}</p></div>`;
-    return;
-  }
-
-  const bids = res.data;
   if (bids.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -210,22 +163,17 @@ async function loadMyBids() {
     return;
   }
 
-  // Fetch project info for each bid
-  const bidCards = [];
-  for (const bid of bids) {
-    const pRes = await projectsAPI.get(bid.project_id);
-    const project = pRes.ok ? pRes.data : null;
-
+  const bidCards = bids.map((bid, i) => {
+    const project = projectCache.get(bid.project_id);
     const isAccepted = project?.accepted_bid_id === bid.id;
+
     let bidStatus = 'pending';
     if (project?.status === 'completed' && isAccepted) bidStatus = 'completed';
     else if (project?.status === 'in_progress' && isAccepted) bidStatus = 'in-progress';
-    else if (project?.status !== 'open' && !isAccepted) bidStatus = 'not-selected';
+    else if (project?.status !== 'open' && !isAccepted) bidStatus = 'not selected';
 
-    const pct = Math.round(bid.match_score * 100);
-
-    bidCards.push(`
-      <div class="glass-card animate-in" style="padding: var(--space-lg);">
+    return `
+      <div class="glass-card animate-in animate-in-delay-${Math.min(i, 4)}" style="padding: var(--space-lg);">
         <div class="flex-between mb-md">
           <div>
             <h3 class="text-sm fw-600">${escapeHTML(project?.title || `Project #${bid.project_id}`)}</h3>
@@ -233,39 +181,170 @@ async function loadMyBids() {
           </div>
           <div style="text-align: right;">
             <div class="bid-amount">${formatCurrency(bid.amount)}</div>
-            <span class="text-muted text-sm fw-600">${pct}%</span>
+            <div class="score-circle ${scoreClass(bid.match_score)}" style="width: 36px; height: 36px; font-size: 0.75rem; display: inline-flex; margin-top: 0.25rem;">
+              ${Math.round(bid.match_score * 100)}
+            </div>
           </div>
         </div>
-        ${bid.proposal ? `<p class="text-sm text-muted mb-md">${escapeHTML(bid.proposal)}</p>` : ''}
+        ${bid.proposal ? `<p class="text-sm text-secondary mb-md">${escapeHTML(bid.proposal)}</p>` : ''}
         <div class="flex-between">
-          <span class="badge badge-${bidStatus}">${bidStatus.replace('-', ' ')}</span>
+          <span class="badge badge-${escapeHTML(bidStatus.replace(/ /g, '-'))}">${escapeHTML(bidStatus)}</span>
           ${bidStatus === 'in-progress' ? `
-            <button class="btn btn-primary btn-sm" onclick="completeFreelancerProject(${bid.project_id})">
+            <button class="btn btn-primary btn-sm" id="btn-freelancer-complete-${bid.project_id}" onclick="completeFreelancerProject(${bid.project_id})">
               ${project?.freelancer_completed ? '✓ Waiting for client' : 'Mark Complete'}
             </button>
           ` : ''}
         </div>
       </div>
-    `);
-  }
+    `;
+  });
 
   container.innerHTML = bidCards.join('');
+}
+
+// Wrapper for manual refresh button
+async function loadMyBids() {
+  await loadFreelancerData();
+}
+
+// --- Browse Open Projects ---
+
+const openProjectsMap = new Map();
+
+async function loadOpenProjects() {
+  const container = document.getElementById('open-projects-list');
+  container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+
+  const res = await projectsAPI.listAll();
+  if (!res.ok) {
+    container.innerHTML = `<div class="empty-state"><p>${escapeHTML(res.error)}</p></div>`;
+    return;
+  }
+
+  const projects = res.data;
+  openProjectsMap.clear();
+
+  if (projects.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>No open projects at the moment. Check back soon!</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = projects.map((p, i) => {
+    openProjectsMap.set(p.id, p);
+    return `
+      <div class="glass-card project-card animate-in animate-in-delay-${Math.min(i, 4)}">
+        <div class="project-header">
+          <div>
+            <h3 class="project-title">${escapeHTML(p.title)}</h3>
+            <span class="text-sm text-muted">by ${escapeHTML(p.client_name || 'Client')}</span>
+          </div>
+          ${statusBadge(p.status)}
+        </div>
+        <p class="project-description">${escapeHTML(p.description || 'No description provided.')}</p>
+        <div class="flex-gap">
+          ${skillChipsHTML(p.required_skills || [], currentProfile?.skills || [])}
+        </div>
+        <div class="project-meta">
+          <span>💰 ${formatCurrency(p.budget_min)} – ${formatCurrency(p.budget_max)}</span>
+          <span>📅 ${formatDate(p.deadline)}</span>
+          <span>📨 ${p.bid_count || 0} bids</span>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="openBidModalById(${p.id})">
+            Submit Bid
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// --- Submit Bid (Safe from JS injection) ---
+
+let bidProjectId = null;
+
+function openBidModalById(projectId) {
+  const project = openProjectsMap.get(projectId);
+  if (!project) return;
+
+  bidProjectId = projectId;
+  document.getElementById('bid-project-title').textContent = project.title;
+  document.getElementById('bid-budget-range').textContent =
+    `${formatCurrency(project.budget_min)} – ${formatCurrency(project.budget_max)}`;
+  openModal('bid-modal');
+}
+
+function setupBidForm() {
+  const form = document.getElementById('bid-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const amount = parseFloat(document.getElementById('bid-amount').value);
+    const proposal = document.getElementById('bid-proposal').value;
+
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid positive bid amount', 'error');
+      return;
+    }
+
+    const body = { amount, proposal };
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add('btn-loading');
+
+    try {
+      const res = await bidsAPI.submit(bidProjectId, body);
+      if (res.ok) {
+        showToast(`Bid submitted! Match score: ${Math.round(res.data.match_score * 100)}%`, 'success');
+        closeModal('bid-modal');
+        form.reset();
+        await Promise.all([
+          loadOpenProjects(),
+          loadFreelancerData(),
+        ]);
+      } else {
+        showToast(res.error, 'error');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-loading');
+    }
+  });
 }
 
 // --- Complete Project (Freelancer side) ---
 
 async function completeFreelancerProject(projectId) {
-  const res = await projectsAPI.complete(projectId);
-  if (res.ok) {
-    if (res.data.status === 'completed') {
-      showToast('Project completed! 🎉', 'success');
+  const btn = document.getElementById(`btn-freelancer-complete-${projectId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+  }
+
+  try {
+    const res = await projectsAPI.complete(projectId);
+    if (res.ok) {
+      if (res.data.status === 'completed') {
+        showToast('Project completed! 🎉', 'success');
+      } else {
+        showToast('Your confirmation recorded. Waiting for the client.', 'info');
+      }
+      projectCache.delete(projectId); // Invalidate cache for this project
+      await loadFreelancerData();
     } else {
-      showToast('Your confirmation recorded. Waiting for the client.', 'info');
+      showToast(res.error, 'error');
     }
-    loadMyBids();
-    loadStats();
-  } else {
-    showToast(res.error, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+    }
   }
 }
 
@@ -273,6 +352,8 @@ async function completeFreelancerProject(projectId) {
 
 function setupProfileForm() {
   const form = document.getElementById('profile-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -280,30 +361,27 @@ function setupProfileForm() {
     const skills = skillsRaw.split(',').map(s => s.trim()).filter(s => s);
     const hourlyRate = parseFloat(document.getElementById('profile-rate').value);
 
-    const res = await freelancersAPI.updateProfile({ skills, hourly_rate: hourlyRate });
-    if (res.ok) {
-      currentProfile = res.data;
-      renderProfileCard();
-      showToast('Profile updated!', 'success');
-      closeModal('profile-modal');
-    } else {
-      showToast(res.error, 'error');
+    if (isNaN(hourlyRate) || hourlyRate <= 0) {
+      showToast('Please enter a valid positive hourly rate', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add('btn-loading');
+
+    try {
+      const res = await freelancersAPI.updateProfile({ skills, hourly_rate: hourlyRate });
+      if (res.ok) {
+        currentProfile = res.data;
+        renderProfileCard();
+        showToast('Profile updated!', 'success');
+        closeModal('profile-modal');
+      } else {
+        showToast(res.error, 'error');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-loading');
     }
   });
-
-  // Pre-fill when modal opens
-  document.querySelector('[onclick*="profile-modal"]')?.addEventListener('click', () => {
-    if (currentProfile) {
-      document.getElementById('profile-skills').value = (currentProfile.skills || []).join(', ');
-      document.getElementById('profile-rate').value = currentProfile.hourly_rate || '';
-    }
-  });
-}
-
-// --- Utility ---
-
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }

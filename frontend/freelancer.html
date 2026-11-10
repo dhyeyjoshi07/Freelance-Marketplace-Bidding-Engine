@@ -5,33 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Freelancer Dashboard — browse projects, submit bids, track proposals, and manage your profile.">
   <title>Freelancer Dashboard — BidForge</title>
-  <link rel="stylesheet" href="/css/styles.css?v=2">
-  <script src="/js/theme.js?v=2"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <!-- Navbar -->
-  <nav class="navbar">
+  <nav class="navbar" aria-label="Main Navigation">
     <div class="container">
       <a href="/freelancer.html" class="navbar-brand">
-        <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <div class="logo-icon">⚡</div>
         BidForge
       </a>
       <div class="navbar-actions">
         <div class="navbar-user">
           <span id="nav-username"></span>
-          <div class="user-avatar" id="nav-avatar"></div>
+          <div class="user-avatar" id="nav-avatar" aria-hidden="true"></div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()" aria-label="Sign out">Logout</button>
       </div>
     </div>
   </nav>
 
   <!-- Dashboard -->
-  <div class="container dashboard">
-    <div class="dashboard-header">
+  <main class="container dashboard">
+    <header class="dashboard-header">
       <h1>Freelancer Dashboard</h1>
       <p class="subtitle">Find projects, submit bids, and grow your career</p>
-    </div>
+    </header>
 
     <!-- Stats -->
     <div class="stats-row">
@@ -54,20 +57,20 @@
     </div>
 
     <!-- Two Column Layout -->
-    <div class="grid-2">
+    <div class="grid-2" style="align-items: flex-start;">
       <!-- Left: Tabs for Projects & Bids -->
       <div>
         <div>
-          <div class="tabs">
-            <button class="tab active" data-tab="tab-browse">Browse Projects</button>
-            <button class="tab" data-tab="tab-bids">My Bids</button>
+          <div class="tabs" role="tablist" aria-label="Freelancer views">
+            <button class="tab active" data-tab="tab-browse" role="tab" aria-selected="true" aria-controls="tab-browse" id="tab-btn-browse">Browse Projects</button>
+            <button class="tab" data-tab="tab-bids" role="tab" aria-selected="false" aria-controls="tab-bids" id="tab-btn-bids">My Bids</button>
           </div>
 
           <!-- Browse Projects Tab -->
-          <div class="tab-content active" id="tab-browse">
+          <div class="tab-content active" id="tab-browse" role="tabpanel" aria-labelledby="tab-btn-browse">
             <div class="section-header">
-              <h2 class="tab-section-heading">Open Projects</h2>
-              <button class="btn btn-secondary btn-sm" onclick="loadOpenProjects()">↻ Refresh</button>
+              <h2 style="font-size: 1.1rem;">Open Projects</h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadOpenProjects()" aria-label="Refresh open projects">↻ Refresh</button>
             </div>
             <div id="open-projects-list" class="projects-list">
               <div class="loading-overlay"><div class="spinner"></div></div>
@@ -75,10 +78,10 @@
           </div>
 
           <!-- My Bids Tab -->
-          <div class="tab-content" id="tab-bids">
+          <div class="tab-content" id="tab-bids" role="tabpanel" aria-labelledby="tab-btn-bids">
             <div class="section-header">
-              <h2 class="tab-section-heading">My Bids</h2>
-              <button class="btn btn-secondary btn-sm" onclick="loadMyBids()">↻ Refresh</button>
+              <h2 style="font-size: 1.1rem;">My Bids</h2>
+              <button class="btn btn-secondary btn-sm" onclick="loadMyBids()" aria-label="Refresh my bids">↻ Refresh</button>
             </div>
             <div id="my-bids-list" class="projects-list">
               <div class="loading-overlay"><div class="spinner"></div></div>
@@ -94,21 +97,21 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- Submit Bid Modal -->
-  <div class="modal-overlay" id="bid-modal">
-    <div class="modal modal-sm">
+  <div class="modal-overlay" id="bid-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-bid" style="max-width: 480px;">
       <div class="modal-header">
-        <h2>Submit Bid</h2>
-        <button class="modal-close">✕</button>
+        <h2 id="modal-title-bid">Submit Bid</h2>
+        <button class="modal-close" aria-label="Close dialog">✕</button>
       </div>
-      <div class="bid-project-info">
+      <div style="margin-bottom: var(--space-lg); padding: var(--space-md); background: var(--bg-surface-2); border-radius: var(--radius-md);">
         <p class="text-sm text-muted">PROJECT</p>
         <p class="fw-600" id="bid-project-title"></p>
         <p class="text-sm mt-sm">
           <span class="text-muted">Budget: </span>
-          <span class="text-accent fw-600" id="bid-budget-range"></span>
+          <span class="text-emerald fw-600" id="bid-budget-range"></span>
         </p>
       </div>
       <form id="bid-form">
@@ -120,17 +123,17 @@
           <label class="form-label" for="bid-proposal">Proposal</label>
           <textarea class="form-textarea" id="bid-proposal" placeholder="Why are you the best fit for this project? Highlight your relevant experience..."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg btn-full">Submit Bid</button>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Submit Bid</button>
       </form>
     </div>
   </div>
 
   <!-- Edit Profile Modal -->
-  <div class="modal-overlay" id="profile-modal">
-    <div class="modal modal-sm">
+  <div class="modal-overlay" id="profile-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-profile" style="max-width: 480px;">
       <div class="modal-header">
-        <h2>Edit Profile</h2>
-        <button class="modal-close">✕</button>
+        <h2 id="modal-title-profile">Edit Profile</h2>
+        <button class="modal-close" aria-label="Close dialog">✕</button>
       </div>
       <form id="profile-form">
         <div class="form-group">
@@ -142,7 +145,7 @@
           <label class="form-label" for="profile-rate">Hourly Rate ($)</label>
           <input class="form-input" type="number" id="profile-rate" min="1" step="1" placeholder="65" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg btn-full">Save Profile</button>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Save Profile</button>
       </form>
     </div>
   </div>

@@ -5,37 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Client Dashboard — post projects, view ranked bids, accept proposals, and rate freelancers.">
   <title>Client Dashboard — BidForge</title>
-  <link rel="stylesheet" href="/css/styles.css?v=2">
-  <script src="/js/theme.js?v=2"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <!-- Navbar -->
-  <nav class="navbar">
+  <nav class="navbar" aria-label="Main Navigation">
     <div class="container">
       <a href="/client.html" class="navbar-brand">
-        <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <div class="logo-icon">⚡</div>
         BidForge
       </a>
       <div class="navbar-actions">
         <button class="btn btn-primary btn-sm" onclick="openModal('create-project-modal')">+ New Project</button>
         <div class="navbar-user">
           <span id="nav-username"></span>
-          <div class="user-avatar" id="nav-avatar"></div>
+          <div class="user-avatar" id="nav-avatar" aria-hidden="true"></div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()" aria-label="Sign out">Logout</button>
       </div>
     </div>
   </nav>
 
   <!-- Dashboard -->
-  <div class="container dashboard">
-    <div class="dashboard-header">
+  <main class="container dashboard">
+    <header class="dashboard-header">
       <h1>Client Dashboard</h1>
       <p class="subtitle">Post projects, review bids, and hire top freelancers</p>
-    </div>
+    </header>
 
     <!-- Stats -->
-    <div class="stats-row">
+    <section class="stats-row" aria-label="Marketplace summary statistics">
       <div class="glass-card stat-card no-hover">
         <div class="stat-value" id="stat-open">0</div>
         <div class="stat-label">Open Projects</div>
@@ -52,25 +55,25 @@
         <div class="stat-value" id="stat-bids">0</div>
         <div class="stat-label">Total Bids</div>
       </div>
-    </div>
+    </section>
 
     <!-- Projects Section -->
     <div class="section-header">
       <h2>My Projects</h2>
-      <button class="btn btn-secondary btn-sm" onclick="loadMyProjects()">↻ Refresh</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadMyProjects()" aria-label="Refresh project list">↻ Refresh</button>
     </div>
 
-    <div id="projects-list" class="projects-list">
+    <div id="projects-list" class="projects-list" aria-live="polite">
       <div class="loading-overlay"><div class="spinner"></div></div>
     </div>
-  </div>
+  </main>
 
   <!-- Create Project Modal -->
-  <div class="modal-overlay" id="create-project-modal">
-    <div class="modal">
+  <div class="modal-overlay" id="create-project-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-project">
       <div class="modal-header">
-        <h2>Post New Project</h2>
-        <button class="modal-close">✕</button>
+        <h2 id="modal-title-project">Post New Project</h2>
+        <button class="modal-close" aria-label="Close dialog">✕</button>
       </div>
       <form id="create-project-form">
         <div class="form-group">
@@ -99,48 +102,48 @@
           <label class="form-label" for="proj-deadline">Deadline</label>
           <input class="form-input" type="datetime-local" id="proj-deadline" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg btn-full">Post Project</button>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-sm);">Post Project</button>
       </form>
     </div>
   </div>
 
   <!-- Ranked Bids Modal -->
-  <div class="modal-overlay" id="bids-modal">
-    <div class="modal modal-wide">
+  <div class="modal-overlay" id="bids-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-bids" style="max-width: 720px;">
       <div class="modal-header">
-        <h2>Ranked Bids</h2>
-        <button class="modal-close">✕</button>
+        <h2 id="modal-title-bids">🏆 Ranked Bids</h2>
+        <button class="modal-close" aria-label="Close dialog">✕</button>
       </div>
-      <div id="bids-list" class="bids-list-container">
+      <div id="bids-list" style="display: flex; flex-direction: column; gap: var(--space-md); max-height: 60vh; overflow-y: auto;">
       </div>
     </div>
   </div>
 
   <!-- Rating Modal -->
-  <div class="modal-overlay" id="rating-modal">
-    <div class="modal modal-xs">
+  <div class="modal-overlay" id="rating-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-rating" style="max-width: 440px;">
       <div class="modal-header">
-        <h2>Rate Freelancer</h2>
-        <button class="modal-close">✕</button>
+        <h2 id="modal-title-rating">★ Rate Freelancer</h2>
+        <button class="modal-close" aria-label="Close dialog">✕</button>
       </div>
       <form id="rating-form">
-        <div class="form-group rating-center">
+        <div class="form-group" style="text-align: center;">
           <label class="form-label">Your Rating</label>
-          <div class="rating-stars-lg">
-            <span class="star-rating" data-rating="0" data-name="score">
-              <span class="star" data-value="1">★</span>
-              <span class="star" data-value="2">★</span>
-              <span class="star" data-value="3">★</span>
-              <span class="star" data-value="4">★</span>
-              <span class="star" data-value="5">★</span>
-            </span>
+          <div style="font-size: 2rem; margin: var(--space-md) 0;">
+            <div class="star-rating" data-rating="0" data-name="score" role="radiogroup" aria-label="Select star rating" tabindex="0">
+              <span class="star" data-value="1" role="radio" aria-checked="false" aria-label="1 star" tabindex="-1">★</span>
+              <span class="star" data-value="2" role="radio" aria-checked="false" aria-label="2 stars" tabindex="-1">★</span>
+              <span class="star" data-value="3" role="radio" aria-checked="false" aria-label="3 stars" tabindex="-1">★</span>
+              <span class="star" data-value="4" role="radio" aria-checked="false" aria-label="4 stars" tabindex="-1">★</span>
+              <span class="star" data-value="5" role="radio" aria-checked="false" aria-label="5 stars" tabindex="-1">★</span>
+            </div>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="rating-review">Review (optional)</label>
           <textarea class="form-textarea" id="rating-review" placeholder="Share your experience working with this freelancer..."></textarea>
         </div>
-        <button type="submit" class="btn btn-gold btn-lg btn-full">Submit Rating</button>
+        <button type="submit" class="btn btn-gold btn-lg" style="width: 100%;">Submit Rating</button>
       </form>
     </div>
   </div>

@@ -5,16 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Freelance Marketplace — where clients post projects and freelancers bid. Smart ranking engine scores bids on fit, not just price.">
   <title>BidForge — Freelance Marketplace</title>
-  <link rel="stylesheet" href="/css/styles.css?v=2">
-  <script src="/js/theme.js?v=2"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
   <div class="auth-page">
+    <!-- Decorative background shapes -->
+    <div style="position: fixed; top: -30%; right: -10%; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(16,185,129,0.06), transparent 70%); pointer-events: none;"></div>
+    <div style="position: fixed; bottom: -20%; left: -10%; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(251,191,36,0.04), transparent 70%); pointer-events: none;"></div>
+
     <div class="auth-container">
       <!-- Logo -->
       <div class="auth-header">
         <div class="logo">
-          <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <div class="logo-icon">⚡</div>
           BidForge
         </div>
         <p>Smart freelance marketplace with AI-powered bid ranking</p>
@@ -22,62 +29,62 @@
 
       <!-- Login / Register Toggle -->
       <div class="glass-card no-hover">
-        <div class="auth-toggle" id="auth-toggle">
-          <button class="toggle-btn active" data-mode="login" onclick="switchAuthMode('login')">Sign In</button>
-          <button class="toggle-btn" data-mode="register" onclick="switchAuthMode('register')">Create Account</button>
+        <div class="auth-toggle" id="auth-toggle" role="tablist" aria-label="Authentication modes">
+          <button class="toggle-btn active" role="tab" aria-selected="true" data-mode="login" onclick="switchAuthMode('login')">Sign In</button>
+          <button class="toggle-btn" role="tab" aria-selected="false" data-mode="register" onclick="switchAuthMode('register')">Create Account</button>
         </div>
 
         <!-- Login Form -->
-        <form id="login-form" class="auth-form">
+        <form id="login-form" class="auth-form" aria-label="Sign In Form">
           <div class="form-group">
             <label class="form-label" for="login-username">Username</label>
-            <input class="form-input" type="text" id="login-username" placeholder="Enter your username" required>
+            <input class="form-input" type="text" id="login-username" placeholder="Enter your username" autocomplete="username" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="login-password">Password</label>
-            <input class="form-input" type="password" id="login-password" placeholder="Enter your password" required>
+            <input class="form-input" type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required>
           </div>
-          <button type="submit" class="btn btn-primary btn-lg btn-full">
+          <button type="submit" class="btn btn-primary btn-lg" id="btn-login" style="width: 100%; margin-top: var(--space-sm);">
             Sign In →
           </button>
         </form>
 
         <!-- Register Form -->
-        <form id="register-form" class="auth-form hidden">
+        <form id="register-form" class="auth-form hidden" aria-label="Registration Form">
           <div class="form-group">
             <label class="form-label" for="reg-username">Username</label>
-            <input class="form-input" type="text" id="reg-username" placeholder="Choose a username" minlength="3" required>
+            <input class="form-input" type="text" id="reg-username" placeholder="Choose a username" autocomplete="username" minlength="3" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="reg-email">Email</label>
-            <input class="form-input" type="email" id="reg-email" placeholder="you@example.com" required>
+            <input class="form-input" type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="reg-password">Password</label>
-            <input class="form-input" type="password" id="reg-password" placeholder="Min 6 characters" minlength="6" required>
+            <input class="form-input" type="password" id="reg-password" placeholder="Min 6 characters" autocomplete="new-password" minlength="6" required>
           </div>
           <div class="form-group">
-            <label class="form-label">I am a...</label>
-            <div class="role-selector" id="role-selector">
-              <div class="role-option selected" data-role="client" onclick="selectRole('client')">
+            <label class="form-label" id="role-label">I am a...</label>
+            <div class="role-selector" id="role-selector" role="radiogroup" aria-labelledby="role-label">
+              <div class="role-option selected" role="radio" aria-checked="true" tabindex="0" data-role="client" onclick="selectRole('client')">
                 <div class="role-icon">💼</div>
                 Client
               </div>
-              <div class="role-option" data-role="freelancer" onclick="selectRole('freelancer')">
+              <div class="role-option" role="radio" aria-checked="false" tabindex="0" data-role="freelancer" onclick="selectRole('freelancer')">
                 <div class="role-icon">🛠️</div>
                 Freelancer
               </div>
             </div>
           </div>
-          <button type="submit" class="btn btn-primary btn-lg btn-full">
+          <button type="submit" class="btn btn-primary btn-lg" id="btn-register" style="width: 100%; margin-top: var(--space-sm);">
             Create Account →
           </button>
         </form>
       </div>
 
       <!-- Features Tagline -->
-      <div class="features-tagline">
-        <p>Smart Ranking &nbsp;·&nbsp; Secure Auth &nbsp;·&nbsp; Real-time Scoring</p>
+      <div style="text-align: center; margin-top: var(--space-xl); color: var(--text-muted); font-size: 0.8rem;">
+        <p>🏆 Smart Ranking &nbsp;·&nbsp; 🔒 Secure Auth &nbsp;·&nbsp; ⚡ Real-time Scoring</p>
       </div>
     </div>
   </div>
@@ -92,7 +99,9 @@
 
     function switchAuthMode(mode) {
       document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
+        const isMatch = btn.dataset.mode === mode;
+        btn.classList.toggle('active', isMatch);
+        btn.setAttribute('aria-selected', isMatch ? 'true' : 'false');
       });
       document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
       document.getElementById('register-form').classList.toggle('hidden', mode !== 'register');
@@ -101,54 +110,85 @@
     function selectRole(role) {
       selectedRole = role;
       document.querySelectorAll('.role-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.dataset.role === role);
+        const isSelected = opt.dataset.role === role;
+        opt.classList.toggle('selected', isSelected);
+        opt.setAttribute('aria-checked', isSelected ? 'true' : 'false');
       });
     }
 
-    // Login handler
+    // Keyboard support for role selector
+    document.querySelectorAll('.role-option').forEach(opt => {
+      opt.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          selectRole(opt.dataset.role);
+        }
+      });
+    });
+
+    // Login handler with button loading state
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true;
+      btn.classList.add('btn-loading');
+
       const body = {
         username: document.getElementById('login-username').value,
         password: document.getElementById('login-password').value,
       };
-      const res = await authAPI.login(body);
-      if (res.ok) {
-        saveAuth(res.data);
-        showToast('Welcome back!', 'success');
-        setTimeout(() => {
-          window.location.href = res.data.role === 'client' ? '/client.html' : '/freelancer.html';
-        }, 500);
-      } else {
-        showToast(res.error, 'error');
+
+      try {
+        const res = await authAPI.login(body);
+        if (res.ok) {
+          saveAuth(res.data);
+          showToast('Welcome back!', 'success');
+          setTimeout(() => {
+            window.location.href = res.data.role === 'client' ? '/client.html' : '/freelancer.html';
+          }, 400);
+        } else {
+          showToast(res.error, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
       }
     });
 
-    // Register handler
+    // Register handler with button loading state
     document.getElementById('register-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('btn-register');
+      btn.disabled = true;
+      btn.classList.add('btn-loading');
+
       const body = {
         username: document.getElementById('reg-username').value,
         email: document.getElementById('reg-email').value,
         password: document.getElementById('reg-password').value,
         role: selectedRole,
       };
-      const res = await authAPI.register(body);
-      if (res.ok) {
-        showToast('Account created! Signing you in...', 'success');
-        // Auto-login after registration
-        const loginRes = await authAPI.login({
-          username: body.username,
-          password: body.password,
-        });
-        if (loginRes.ok) {
-          saveAuth(loginRes.data);
-          setTimeout(() => {
-            window.location.href = loginRes.data.role === 'client' ? '/client.html' : '/freelancer.html';
-          }, 500);
+
+      try {
+        const res = await authAPI.register(body);
+        if (res.ok) {
+          showToast('Account created! Signing you in...', 'success');
+          const loginRes = await authAPI.login({
+            username: body.username,
+            password: body.password,
+          });
+          if (loginRes.ok) {
+            saveAuth(loginRes.data);
+            setTimeout(() => {
+              window.location.href = loginRes.data.role === 'client' ? '/client.html' : '/freelancer.html';
+            }, 400);
+          }
+        } else {
+          showToast(res.error, 'error');
         }
-      } else {
-        showToast(res.error, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
       }
     });
   </script>

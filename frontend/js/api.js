@@ -56,6 +56,12 @@ async function apiRequest(method, path, body = null) {
     }
 
     if (!response.ok) {
+      if (response.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/register')) {
+        localStorage.removeItem('token');
+        if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
+          window.location.href = '/index.html';
+        }
+      }
       const errorMsg = data?.detail || `Request failed (${response.status})`;
       return { ok: false, data: null, status: response.status, error: errorMsg };
     }
