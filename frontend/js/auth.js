@@ -22,6 +22,9 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+if (typeof window !== 'undefined') {
+  window.escapeHTML = escapeHTML;
+}
 
 // --- Token Management ---
 
@@ -255,10 +258,13 @@ function statusBadge(status) {
 
 /** Build skill chips with optional matching highlights */
 function skillChipsHTML(skills, matchedSkills = []) {
-  const matchedSet = new Set(matchedSkills.map(s => s.toLowerCase()));
+  if (!Array.isArray(skills)) return '';
+  const safeMatched = Array.isArray(matchedSkills) ? matchedSkills : [];
+  const matchedSet = new Set(safeMatched.map(s => String(s || '').trim().toLowerCase()));
   return skills.map(s => {
-    const isMatched = matchedSet.has(s.toLowerCase());
-    return `<span class="skill-chip ${isMatched ? 'matched' : ''}">${escapeHTML(s)}</span>`;
+    const sStr = String(s || '').trim();
+    const isMatched = matchedSet.has(sStr.toLowerCase());
+    return `<span class="skill-chip ${isMatched ? 'matched' : ''}">${escapeHTML(sStr)}</span>`;
   }).join('');
 }
 

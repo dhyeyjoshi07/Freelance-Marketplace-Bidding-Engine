@@ -5,6 +5,17 @@
  * bid acceptance, project completion, and freelancer rating.
  */
 
+// Defensive HTML escaper fallback in case of cached auth.js
+const escapeHTML = window.escapeHTML || function(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   if (!requireAuth('client')) return;
 
@@ -43,16 +54,18 @@ function updateClientStats(projects) {
 
 async function loadMyProjects() {
   const container = document.getElementById('projects-list');
+  if (!container) return;
   container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
 
-  const res = await projectsAPI.my();
-  if (!res.ok) {
-    container.innerHTML = `<div class="empty-state"><p>${escapeHTML(res.error)}</p></div>`;
-    return;
-  }
+  try {
+    const res = await projectsAPI.my();
+    if (!res.ok) {
+      container.innerHTML = `<div class="empty-state"><p class="text-secondary text-sm">${escapeHTML(res?.error || 'Failed to load projects')}</p><button class="btn btn-secondary btn-sm mt-md" onclick="loadMyProjects()">Retry</button></div>`;
+      return;
+    }
 
-  const projects = res.data;
-  updateClientStats(projects);
+    const projects = res.data || [];
+    updateClientStats(projects);
 
   if (projects.length === 0) {
     container.innerHTML = `
@@ -90,6 +103,10 @@ async function loadMyProjects() {
       </div>
     </div>
   `).join('');
+  } catch (err) {
+    console.error('Error loading client projects:', err);
+    container.innerHTML = `<div class="empty-state"><p class="text-secondary text-sm">Failed to load projects: ${escapeHTML(err.message)}</p><button class="btn btn-secondary btn-sm mt-md" onclick="loadMyProjects()">Retry</button></div>`;
+  }
 }
 
 // --- View Ranked Bids ---

@@ -7,7 +7,7 @@ and initializes the database on startup.
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,6 +40,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_cache_control_header(request: Request, call_next):
+    """Disable browser caching for frontend static assets during development."""
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith((".js", ".css", ".html")) or path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 # --- Register routers ---
