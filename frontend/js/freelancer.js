@@ -5,18 +5,7 @@
  * managing profile (skills + hourly rate), and completing projects.
  */
 
-// Defensive HTML escaper fallback in case of cached auth.js
-const escapeHTML = window.escapeHTML || function(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   if (!requireAuth('freelancer')) return;
 
   // Set navbar user info
@@ -25,17 +14,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTabs();
   initModals();
+  loadProfile();
+  loadFreelancerData();
+  loadOpenProjects();
   setupProfileForm();
   setupBidForm();
-
-  // Load profile first so skills are ready for project matching highlights
-  await loadProfile();
-
-  // Concurrently load open projects and freelancer stats/bids
-  await Promise.all([
-    loadOpenProjects(),
-    loadFreelancerData()
-  ]);
 });
 
 // --- Profile ---
@@ -43,40 +26,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 let currentProfile = null;
 
 async function loadProfile() {
-  const el = document.getElementById('profile-card');
-  try {
-    const res = await freelancersAPI.myProfile();
-    if (res.ok && res.data) {
-      currentProfile = res.data;
-      renderProfileCard();
-    } else {
-      if (el) {
-        el.innerHTML = `
-          <div class="empty-state">
-            <p class="text-secondary text-sm">${escapeHTML(res?.error || 'Failed to load profile')}</p>
-            <button class="btn btn-secondary btn-sm mt-md" onclick="loadProfile()">Retry</button>
-          </div>
-        `;
-      }
-    }
-  } catch (err) {
-    console.error('Error loading profile:', err);
-    if (el) {
-      el.innerHTML = `
-        <div class="empty-state">
-          <p class="text-secondary text-sm">Error loading profile</p>
-          <button class="btn btn-secondary btn-sm mt-md" onclick="loadProfile()">Retry</button>
-        </div>
-      `;
-    }
+  const res = await freelancersAPI.myProfile();
+  if (res.ok) {
+    currentProfile = res.data;
+    renderProfileCard();
   }
 }
 
 function renderProfileCard() {
   const el = document.getElementById('profile-card');
   if (!el || !currentProfile) return;
-
-  const skillsList = Array.isArray(currentProfile.skills) ? currentProfile.skills : [];
 
   el.innerHTML = `
     <div class="flex-between mb-md">
@@ -100,8 +59,8 @@ function renderProfileCard() {
     <div>
       <span class="text-muted text-xs">SKILLS</span>
       <div class="flex-gap mt-sm">
-        ${skillsList.length > 0
-          ? skillChipsHTML(skillsList)
+        ${currentProfile.skills.length > 0
+          ? skillChipsHTML(currentProfile.skills)
           : '<span class="text-muted text-sm">No skills added yet</span>'
         }
       </div>
@@ -140,29 +99,22 @@ async function loadFreelancerData() {
     container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
   }
 
-  try {
-    const bidsRes = await bidsAPI.myBids();
-    if (!bidsRes.ok) {
-      if (container) {
-        container.innerHTML = `<div class="empty-state"><p class="text-secondary text-sm">${escapeHTML(bidsRes?.error || 'Failed to load bids')}</p><button class="btn btn-secondary btn-sm mt-md" onclick="loadFreelancerData()">Retry</button></div>`;
-      }
-      return;
-    }
-
-    const bids = bidsRes.data || [];
-    const projectIds = [...new Set(bids.map(b => b.project_id))];
-
-    // Batch fetch all required project records concurrently
-    await getProjectsByIds(projectIds);
-
-    renderStats(bids);
-    renderMyBids(bids);
-  } catch (err) {
-    console.error('Error loading freelancer bids/stats:', err);
+  const bidsRes = await bidsAPI.myBids();
+  if (!bidsRes.ok) {
     if (container) {
-      container.innerHTML = `<div class="empty-state"><p class="text-secondary text-sm">Error loading bids: ${escapeHTML(err.message)}</p><button class="btn btn-secondary btn-sm mt-md" onclick="loadFreelancerData()">Retry</button></div>`;
+      container.innerHTML = `<div class="empty-state"><p>${escapeHTML(bidsRes.error)}</p></div>`;
     }
+    return;
   }
+
+  const bids = bidsRes.data;
+  const projectIds = [...new Set(bids.map(b => b.project_id))];
+
+  // Batch fetch all required project records concurrently
+  await getProjectsByIds(projectIds);
+
+  renderStats(bids);
+  renderMyBids(bids);
 }
 
 function renderStats(bids) {
@@ -261,70 +213,54 @@ const openProjectsMap = new Map();
 
 async function loadOpenProjects() {
   const container = document.getElementById('open-projects-list');
-  if (!container) return;
   container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
 
-  try {
-    const res = await projectsAPI.listAll();
-    if (!res.ok) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <p class="text-secondary text-sm">${escapeHTML(res?.error || 'Failed to load projects')}</p>
-          <button class="btn btn-secondary btn-sm mt-md" onclick="loadOpenProjects()">Retry</button>
-        </div>`;
-      return;
-    }
+  const res = await projectsAPI.listAll();
+  if (!res.ok) {
+    container.innerHTML = `<div class="empty-state"><p>${escapeHTML(res.error)}</p></div>`;
+    return;
+  }
 
-    const projects = res.data || [];
-    openProjectsMap.clear();
+  const projects = res.data;
+  openProjectsMap.clear();
 
-    if (projects.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">🔍</div>
-          <p>No open projects at the moment. Check back soon!</p>
-        </div>`;
-      return;
-    }
-
-    const freelancerSkills = Array.isArray(currentProfile?.skills) ? currentProfile.skills : [];
-
-    container.innerHTML = projects.map((p, i) => {
-      openProjectsMap.set(p.id, p);
-      return `
-        <div class="glass-card project-card animate-in animate-in-delay-${Math.min(i, 4)}">
-          <div class="project-header">
-            <div>
-              <h3 class="project-title">${escapeHTML(p.title)}</h3>
-              <span class="text-sm text-muted">by ${escapeHTML(p.client_name || 'Client')}</span>
-            </div>
-            ${statusBadge(p.status)}
-          </div>
-          <p class="project-description">${escapeHTML(p.description || 'No description provided.')}</p>
-          <div class="flex-gap">
-            ${skillChipsHTML(p.required_skills || [], freelancerSkills)}
-          </div>
-          <div class="project-meta">
-            <span>💰 ${formatCurrency(p.budget_min)} – ${formatCurrency(p.budget_max)}</span>
-            <span>📅 ${formatDate(p.deadline)}</span>
-            <span>📨 ${p.bid_count || 0} bids</span>
-          </div>
-          <div>
-            <button class="btn btn-primary btn-sm" onclick="openBidModalById(${p.id})">
-              Submit Bid
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } catch (err) {
-    console.error('Error loading open projects:', err);
+  if (projects.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <p class="text-secondary text-sm">Failed to load open projects: ${escapeHTML(err.message)}</p>
-        <button class="btn btn-secondary btn-sm mt-md" onclick="loadOpenProjects()">Retry</button>
+        <div class="empty-icon">🔍</div>
+        <p>No open projects at the moment. Check back soon!</p>
       </div>`;
+    return;
   }
+
+  container.innerHTML = projects.map((p, i) => {
+    openProjectsMap.set(p.id, p);
+    return `
+      <div class="glass-card project-card animate-in animate-in-delay-${Math.min(i, 4)}">
+        <div class="project-header">
+          <div>
+            <h3 class="project-title">${escapeHTML(p.title)}</h3>
+            <span class="text-sm text-muted">by ${escapeHTML(p.client_name || 'Client')}</span>
+          </div>
+          ${statusBadge(p.status)}
+        </div>
+        <p class="project-description">${escapeHTML(p.description || 'No description provided.')}</p>
+        <div class="flex-gap">
+          ${skillChipsHTML(p.required_skills || [], currentProfile?.skills || [])}
+        </div>
+        <div class="project-meta">
+          <span>💰 ${formatCurrency(p.budget_min)} – ${formatCurrency(p.budget_max)}</span>
+          <span>📅 ${formatDate(p.deadline)}</span>
+          <span>📨 ${p.bid_count || 0} bids</span>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="openBidModalById(${p.id})">
+            Submit Bid
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // --- Submit Bid (Safe from JS injection) ---

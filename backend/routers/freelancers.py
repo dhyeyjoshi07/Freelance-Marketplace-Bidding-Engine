@@ -133,14 +133,10 @@ def rate_freelancer(
     )
     db.add(rating)
 
-    # Update the freelancer's incremental average rating
-    profile = (
-        db.query(FreelancerProfile)
-        .filter(FreelancerProfile.user_id == accepted_bid.freelancer_id)
-        .first()
-    )
-    if profile:
-        profile.update_rating(body.score)
+    # Note: the MySQL trigger trg_after_insert_rating automatically updates
+    # the freelancer's avg_rating and total_ratings when the Rating row is
+    # inserted, so we do NOT call profile.update_rating() here — doing so
+    # would double-count the rating.
 
     db.commit()
     db.refresh(rating)

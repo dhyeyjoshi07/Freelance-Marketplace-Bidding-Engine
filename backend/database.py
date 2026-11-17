@@ -215,14 +215,61 @@ STORED_PROCEDURES = [
         bid_amount FLOAT, budget_min FLOAT, budget_max FLOAT
     ) RETURNS FLOAT DETERMINISTIC
     BEGIN
+        IF bid_amount <= 0 THEN
+            RETURN 0.0;
+        END IF;
         IF bid_amount BETWEEN budget_min AND budget_max THEN
             RETURN 1.0;
         ELSEIF bid_amount < budget_min THEN
-            IF budget_min = 0 THEN RETURN 0.0; END IF;
-            RETURN bid_amount / budget_min;
+            IF budget_min = 0 THEN RETURN 1.0; END IF;
+            RETURN GREATEST(0.0, bid_amount / budget_min);
         ELSE
-            RETURN GREATEST(0, 1.0 - (bid_amount - budget_max) / budget_max);
+            IF budget_max = 0 THEN RETURN 0.0; END IF;
+            RETURN GREATEST(0.0, 1.0 - (bid_amount - budget_max) / budget_max);
         END IF;
+    END
+    """,
+
+    # D-1 fix: Stored procedure with CURSOR demonstration
+    """
+    CREATE PROCEDURE IF NOT EXISTS sp_bid_summary_cursor(IN p_project_id INT)
+    BEGIN
+        DECLARE v_bid_id INT;
+        DECLARE v_amount FLOAT;
+        DECLARE v_score FLOAT;
+        DECLARE v_count INT DEFAULT 0;
+        DECLARE v_total_amount FLOAT DEFAULT 0;
+        DECLARE v_max_score FLOAT DEFAULT 0;
+        DECLARE v_done INT DEFAULT FALSE;
+
+        DECLARE bid_cursor CURSOR FOR
+            SELECT id, amount, match_score
+            FROM bids
+            WHERE project_id = p_project_id;
+
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+
+        OPEN bid_cursor;
+
+        read_loop: LOOP
+            FETCH bid_cursor INTO v_bid_id, v_amount, v_score;
+            IF v_done THEN
+                LEAVE read_loop;
+            END IF;
+
+            SET v_count = v_count + 1;
+            SET v_total_amount = v_total_amount + v_amount;
+            IF v_score > v_max_score THEN
+                SET v_max_score = v_score;
+            END IF;
+        END LOOP;
+
+        CLOSE bid_cursor;
+
+        SELECT v_count AS total_bids,
+               ROUND(v_total_amount, 2) AS total_amount,
+               ROUND(CASE WHEN v_count > 0 THEN v_total_amount / v_count ELSE 0 END, 2) AS avg_amount,
+               ROUND(v_max_score, 3) AS highest_score;
     END
     """,
 ]

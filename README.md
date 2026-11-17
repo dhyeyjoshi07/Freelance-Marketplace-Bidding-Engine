@@ -77,7 +77,7 @@ freelance-marketplace/
 │   ├── config.py                 # Environment-driven configuration
 │   ├── database.py               # Engine, session factory, triggers, stored procedures
 │   ├── dependencies.py           # DI: get_db, get_current_user, require_role()
-│   ├── exceptions.py             # 5 domain exceptions
+│   ├── exceptions.py             # 5 domain exceptions (4 active + 1 reserved)
 │   ├── models/
 │   │   ├── enums.py              # ProjectStatus, UserRole
 │   │   ├── user.py               # User (ORM) + UserBase ABC hierarchy + FreelancerProfile

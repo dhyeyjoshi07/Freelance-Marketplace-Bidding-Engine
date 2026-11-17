@@ -131,18 +131,24 @@ def list_ranked_bids(
     if not bids:
         return []
 
+    # H-3 fix: Batch-load all freelancer Users and Profiles in 2 queries
+    # instead of 2N individual queries
+    freelancer_ids = list({bid.freelancer_id for bid in bids})
+
+    users = db.query(User).filter(User.id.in_(freelancer_ids)).all()
+    user_map = {u.id: u for u in users}
+
+    profiles = (
+        db.query(FreelancerProfile)
+        .filter(FreelancerProfile.user_id.in_(freelancer_ids))
+        .all()
+    )
+    profiles_cache = {p.user_id: p for p in profiles}
+
     # Build ranked queue using BidRanked dataclass + heapq
-    # Cache freelancer profiles to avoid redundant queries
     ranked_items = []
-    profiles_cache: dict[int, FreelancerProfile | None] = {}
     for bid in bids:
-        freelancer = db.query(User).filter(User.id == bid.freelancer_id).first()
-        profile = (
-            db.query(FreelancerProfile)
-            .filter(FreelancerProfile.user_id == bid.freelancer_id)
-            .first()
-        )
-        profiles_cache[bid.freelancer_id] = profile
+        freelancer = user_map.get(bid.freelancer_id)
         ranked_items.append(BidRanked(
             bid_id=bid.id,
             match_score=bid.match_score,

@@ -110,7 +110,7 @@ def set_isolation_level(db: Session, level: str) -> None:
     }
     if level.upper() not in valid_levels:
         raise ValueError(f"Invalid isolation level: {level}")
-    db.execute(text(f"SET SESSION TRANSACTION ISOLATION LEVEL {level}"))
+    db.execute(text(f"SET SESSION TRANSACTION ISOLATION LEVEL {level.upper()}"))
 
 
 def demonstrate_acid_properties(db: Session) -> dict:

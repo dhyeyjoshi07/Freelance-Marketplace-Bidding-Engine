@@ -73,13 +73,17 @@ CREATE FUNCTION IF NOT EXISTS fn_price_fit(
     bid_amount FLOAT, budget_min FLOAT, budget_max FLOAT
 ) RETURNS FLOAT DETERMINISTIC
 BEGIN
+    IF bid_amount <= 0 THEN
+        RETURN 0.0;
+    END IF;
     IF bid_amount BETWEEN budget_min AND budget_max THEN
         RETURN 1.0;
     ELSEIF bid_amount < budget_min THEN
-        IF budget_min = 0 THEN RETURN 0.0; END IF;
-        RETURN bid_amount / budget_min;
+        IF budget_min = 0 THEN RETURN 1.0; END IF;
+        RETURN GREATEST(0.0, bid_amount / budget_min);
     ELSE
-        RETURN GREATEST(0, 1.0 - (bid_amount - budget_max) / budget_max);
+        IF budget_max = 0 THEN RETURN 0.0; END IF;
+        RETURN GREATEST(0.0, 1.0 - (bid_amount - budget_max) / budget_max);
     END IF;
 END //
 

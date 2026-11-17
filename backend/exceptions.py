@@ -67,6 +67,11 @@ class UnauthorizedActionError(Exception):
     """
     Raised when a user tries to perform an action outside their role
     (e.g., a freelancer trying to post a project).
+
+    NOTE (L-5): Currently reserved — role enforcement is handled by the
+    ``require_role()`` dependency in ``dependencies.py`` which raises
+    ``HTTPException(403)`` directly.  This exception is kept for future use
+    in domain-layer role checks that should stay HTTP-agnostic.
     """
     def __init__(self, role: str, action: str):
         self.role = role

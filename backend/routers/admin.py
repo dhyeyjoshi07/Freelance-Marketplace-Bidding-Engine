@@ -9,11 +9,12 @@ These endpoints are used to:
 - Call stored procedures
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.dependencies import get_db
+from backend.dependencies import get_db, get_current_user
+from backend.models.user import User
 from backend.services.query_analyzer import (
     explain_query, get_table_stats, get_index_info, demonstrate_query_optimization
 )
@@ -21,7 +22,11 @@ from backend.services.transaction_manager import demonstrate_acid_properties
 from backend.services.encryption import encrypt, decrypt
 
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(
+    prefix="/api/admin",
+    tags=["admin"],
+    dependencies=[Depends(get_current_user)],  # H-1 fix: require authentication
+)
 
 
 @router.get("/explain")
@@ -30,16 +35,25 @@ def explain_endpoint(query: str, db: Session = Depends(get_db)):
     Run EXPLAIN on a query and return the execution plan.
 
     Query param: ?query=SELECT * FROM bids WHERE project_id = 1
+
+    Only single SELECT statements are accepted — DDL, DML writes,
+    and multi-statement payloads are rejected to prevent SQL injection.
     """
-    plan = explain_query(db, query)
+    try:
+        plan = explain_query(db, query)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"query": query, "plan": plan}
 
 
 @router.get("/table-stats/{table_name}")
 def table_stats(table_name: str, db: Session = Depends(get_db)):
     """Get optimizer statistics for a table (DBMS Unit 5)."""
-    stats = get_table_stats(db, table_name)
-    indexes = get_index_info(db, table_name)
+    try:
+        stats = get_table_stats(db, table_name)
+        indexes = get_index_info(db, table_name)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"stats": stats, "indexes": indexes}
 
 

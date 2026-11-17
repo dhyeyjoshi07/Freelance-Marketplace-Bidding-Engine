@@ -4,10 +4,11 @@ Pydantic schemas for user registration, login, and profile responses.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # --- Registration ---
@@ -15,7 +16,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserRegister(BaseModel):
     """Request body for POST /api/auth/register."""
     username: str = Field(..., min_length=3, max_length=50)
-    email: str = Field(..., min_length=5, max_length=120)
+    email: EmailStr  # M-1 fix: use EmailStr for proper email validation
     password: str = Field(..., min_length=6, max_length=128)
     role: str = Field(..., pattern="^(client|freelancer)$")
 
@@ -60,6 +61,17 @@ class FreelancerProfileOut(BaseModel):
     total_ratings: int
 
     model_config = {"from_attributes": True}
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def parse_skills_json(cls, v):
+        """H-4 fix: deserialize JSON string if ORM passes raw Text column."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        return v
 
 
 class FreelancerProfileUpdate(BaseModel):

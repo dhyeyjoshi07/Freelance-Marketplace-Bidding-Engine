@@ -122,7 +122,15 @@ def seed():
 
     db.flush()
 
-    # Pre-seed initial rating impressions for top freelancers
+    # Pre-seed initial rating impressions for top freelancers.
+    # NOTE (M-2): These call update_rating() directly on the profile WITHOUT
+    # inserting a Rating row, so the trg_after_insert_rating trigger does NOT
+    # fire.  This is intentional — we want realistic avg_rating values on the
+    # profiles at seed time, but no matching Rating records.  The completed-
+    # project ratings (further below at ~L467) DO insert Rating rows and fire
+    # the trigger.  After the C-3 fix (removing the duplicate Python-side
+    # update_rating call in the router), this asymmetry is harmless: the
+    # trigger is the sole owner of live rating updates during normal operation.
     freelancer_map["dev_alice"][1].update_rating(5)
     freelancer_map["dev_alice"][1].update_rating(5)
     freelancer_map["dev_charlie"][1].update_rating(5)
@@ -492,8 +500,9 @@ def seed():
     print("  • Freelancer Dashboard: dev_alice   or  dev_charlie  or  dev_fiona")
     print("=" * 65)
 
-    db.close()
-
 
 if __name__ == "__main__":
-    seed()
+    try:
+        seed()
+    finally:
+        db.close()  # M-6 fix: ensure session is closed even on exception

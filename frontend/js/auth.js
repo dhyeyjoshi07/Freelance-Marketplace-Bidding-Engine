@@ -22,9 +22,6 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-if (typeof window !== 'undefined') {
-  window.escapeHTML = escapeHTML;
-}
 
 // --- Token Management ---
 
@@ -258,40 +255,43 @@ function statusBadge(status) {
 
 /** Build skill chips with optional matching highlights */
 function skillChipsHTML(skills, matchedSkills = []) {
-  if (!Array.isArray(skills)) return '';
-  const safeMatched = Array.isArray(matchedSkills) ? matchedSkills : [];
-  const matchedSet = new Set(safeMatched.map(s => String(s || '').trim().toLowerCase()));
+  const matchedSet = new Set(matchedSkills.map(s => s.toLowerCase()));
   return skills.map(s => {
-    const sStr = String(s || '').trim();
-    const isMatched = matchedSet.has(sStr.toLowerCase());
-    return `<span class="skill-chip ${isMatched ? 'matched' : ''}">${escapeHTML(sStr)}</span>`;
+    const isMatched = matchedSet.has(s.toLowerCase());
+    return `<span class="skill-chip ${isMatched ? 'matched' : ''}">${escapeHTML(s)}</span>`;
   }).join('');
 }
 
-/** Build score breakdown bars */
+/** Build score breakdown bars.
+ *  L-4 note: When actual component scores are not provided, the bars show
+ *  estimated values derived from the composite match_score.  The label
+ *  "(est.)" is appended so the user knows these are approximations.
+ */
 function scoreBreakdownHTML(matchScore, skillOverlap = null, priceScore = null, ratingScore = null) {
+  const isEstimated = skillOverlap === null;
   const skill = skillOverlap !== null ? skillOverlap : Math.min(matchScore * 1.2, 1);
   const price = priceScore !== null ? priceScore : Math.min(matchScore * 1.1, 1);
   const rating = ratingScore !== null ? ratingScore : Math.min(matchScore * 0.9, 1);
+  const estLabel = isEstimated ? ' <small style="opacity:0.6">(est.)</small>' : '';
 
   return `
-    <div class="score-bar-group" role="region" aria-label="Score breakdown">
+    <div class="score-bar-group" role="region" aria-label="Score breakdown${isEstimated ? ' (estimated)' : ''}">
       <div class="score-bar">
-        <span class="score-bar-label">Skill</span>
+        <span class="score-bar-label">Skill${estLabel}</span>
         <div class="score-bar-track">
           <div class="score-bar-fill skill" style="width: 0%" data-width="${Math.round(skill * 100)}%"></div>
         </div>
         <span class="score-bar-value">${Math.round(skill * 100)}%</span>
       </div>
       <div class="score-bar">
-        <span class="score-bar-label">Rating</span>
+        <span class="score-bar-label">Rating${estLabel}</span>
         <div class="score-bar-track">
           <div class="score-bar-fill rating" style="width: 0%" data-width="${Math.round(rating * 100)}%"></div>
         </div>
         <span class="score-bar-value">${Math.round(rating * 100)}%</span>
       </div>
       <div class="score-bar">
-        <span class="score-bar-label">Price</span>
+        <span class="score-bar-label">Price${estLabel}</span>
         <div class="score-bar-track">
           <div class="score-bar-fill price" style="width: 0%" data-width="${Math.round(price * 100)}%"></div>
         </div>

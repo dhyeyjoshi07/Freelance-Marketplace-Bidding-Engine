@@ -21,8 +21,62 @@ EXPLAIN output columns (MySQL):
     Extra         — additional info (Using index, Using where, Using filesort, etc.)
 """
 
+import re
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+
+# Tables that the EXPLAIN and SHOW INDEX endpoints are allowed to reference.
+# Any table name not in this set is rejected to prevent SQL injection.
+ALLOWED_TABLES = frozenset({
+    "users", "freelancer_profiles", "projects",
+    "bids", "ratings", "audit_log",
+})
+
+# Regex that matches a bare SELECT statement (no semicolons, no stacked
+# queries).  This is intentionally restrictive: it allows SELECT … but
+# rejects DDL, DML writes, and multi-statement payloads.
+_SAFE_SELECT_RE = re.compile(
+    r"^\s*SELECT\s.+$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _validate_select_query(sql: str) -> str:
+    """
+    Validate that *sql* is a single SELECT statement.
+
+    Raises ValueError for anything that looks like injection:
+    semicolons (stacked queries), DDL/DML keywords at statement
+    boundaries, or non-SELECT statements.
+    """
+    stripped = sql.strip().rstrip(";").strip()
+
+    # Reject if it contains a semicolon (attempt to stack queries)
+    if ";" in stripped:
+        raise ValueError("Query must not contain semicolons")
+
+    # Must start with SELECT
+    if not _SAFE_SELECT_RE.match(stripped):
+        raise ValueError("Only SELECT queries are allowed for EXPLAIN")
+
+    return stripped
+
+
+def _validate_table_name(table_name: str) -> str:
+    """
+    Validate that *table_name* is one of the known BidForge tables.
+
+    Raises ValueError for unknown or malicious table names.
+    """
+    cleaned = table_name.strip().lower()
+    if cleaned not in ALLOWED_TABLES:
+        raise ValueError(
+            f"Unknown table: '{table_name}'. "
+            f"Allowed tables: {', '.join(sorted(ALLOWED_TABLES))}"
+        )
+    return cleaned
 
 
 def explain_query(db: Session, sql: str) -> list[dict]:
@@ -31,12 +85,16 @@ def explain_query(db: Session, sql: str) -> list[dict]:
 
     Args:
         db: SQLAlchemy session.
-        sql: The SELECT query to analyze.
+        sql: The SELECT query to analyze (must be a single SELECT statement).
 
     Returns:
         List of dicts, each representing one row of the EXPLAIN output.
+
+    Raises:
+        ValueError: If *sql* is not a valid SELECT statement.
     """
-    result = db.execute(text(f"EXPLAIN {sql}"))
+    safe_sql = _validate_select_query(sql)
+    result = db.execute(text(f"EXPLAIN {safe_sql}"))
     columns = result.keys()
     return [dict(zip(columns, row)) for row in result.fetchall()]
 
@@ -49,7 +107,8 @@ def explain_analyze(db: Session, sql: str) -> list[dict]:
     real row counts, loop counts, and timing — useful for identifying
     where the optimizer's estimates diverge from reality.
     """
-    result = db.execute(text(f"EXPLAIN ANALYZE {sql}"))
+    safe_sql = _validate_select_query(sql)
+    result = db.execute(text(f"EXPLAIN ANALYZE {safe_sql}"))
     columns = result.keys()
     return [dict(zip(columns, row)) for row in result.fetchall()]
 
@@ -61,16 +120,17 @@ def get_table_stats(db: Session, table_name: str) -> dict:
     MySQL's query optimizer uses these statistics to estimate selectivity
     and choose between index scan vs. full table scan.
     """
+    validated_table = _validate_table_name(table_name)
     result = db.execute(text(
         "SELECT TABLE_ROWS, AVG_ROW_LENGTH, DATA_LENGTH, INDEX_LENGTH "
         "FROM INFORMATION_SCHEMA.TABLES "
         "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table"
-    ), {"table": table_name})
+    ), {"table": validated_table})
     row = result.fetchone()
     if not row:
         return {}
     return {
-        "table": table_name,
+        "table": validated_table,
         "estimated_rows": row[0],
         "avg_row_length": row[1],
         "data_size_bytes": row[2],
@@ -86,7 +146,8 @@ def get_index_info(db: Session, table_name: str) -> list[dict]:
     their cardinality (number of distinct values — higher cardinality
     means the index is more selective and more useful to the optimizer).
     """
-    result = db.execute(text(f"SHOW INDEX FROM {table_name}"))
+    validated_table = _validate_table_name(table_name)
+    result = db.execute(text(f"SHOW INDEX FROM {validated_table}"))
     columns = result.keys()
     return [dict(zip(columns, row)) for row in result.fetchall()]
 

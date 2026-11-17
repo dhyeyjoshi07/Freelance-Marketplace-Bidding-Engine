@@ -15,6 +15,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.dependencies import get_db, get_current_user, require_role
@@ -59,6 +60,54 @@ def _project_to_out(project: Project, db: Session) -> ProjectOut:
         created_at=project.created_at,
         bid_count=bid_count,
     )
+
+
+def _projects_to_out_batch(projects: list[Project], db: Session) -> list[ProjectOut]:
+    """
+    Batch-convert a list of Project ORM instances to response schemas.
+
+    H-2 fix: Uses two bulk queries (clients + bid counts) instead of
+    2N individual queries, reducing database round-trips from O(2N) to O(2).
+    """
+    if not projects:
+        return []
+
+    project_ids = [p.id for p in projects]
+    client_ids = list({p.client_id for p in projects})
+
+    # Batch-load all client usernames in one query
+    clients = db.query(User.id, User.username).filter(User.id.in_(client_ids)).all()
+    client_map = {uid: uname for uid, uname in clients}
+
+    # Batch-count bids per project in one query
+    bid_counts = (
+        db.query(Bid.project_id, func.count(Bid.id))
+        .filter(Bid.project_id.in_(project_ids))
+        .group_by(Bid.project_id)
+        .all()
+    )
+    bid_count_map = {pid: cnt for pid, cnt in bid_counts}
+
+    return [
+        ProjectOut(
+            id=p.id,
+            client_id=p.client_id,
+            client_name=client_map.get(p.client_id),
+            title=p.title,
+            description=p.description or "",
+            required_skills=p.get_required_skills_list(),
+            budget_min=p.budget_min,
+            budget_max=p.budget_max,
+            deadline=p.deadline,
+            status=p.status,
+            accepted_bid_id=p.accepted_bid_id,
+            client_completed=bool(p.client_completed),
+            freelancer_completed=bool(p.freelancer_completed),
+            created_at=p.created_at,
+            bid_count=bid_count_map.get(p.id, 0),
+        )
+        for p in projects
+    ]
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
@@ -137,7 +186,7 @@ def list_projects(
             if skill_lower in p.get_required_skills_list()
         ]
 
-    return [_project_to_out(p, db) for p in projects]
+    return _projects_to_out_batch(projects, db)
 
 
 @router.get("/my", response_model=list[ProjectOut])
@@ -172,7 +221,7 @@ def my_projects(
             .all()
         )
 
-    return [_project_to_out(p, db) for p in projects]
+    return _projects_to_out_batch(projects, db)
 
 
 @router.get("/{project_id}", response_model=ProjectOut)

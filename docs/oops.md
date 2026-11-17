@@ -89,7 +89,7 @@ Open ──accept_bid()──▶ InProgress ──mark_completed_by()──▶ C
 `FreelancerProfile` encapsulates skill storage — callers never deal with raw JSON:
 
 ```python
-# backend/models/user.py — Lines 152–159
+# backend/models/user.py — Lines 152–158
 
 def get_skills_list(self) -> list[str]:
     return json.loads(self.skills) if self.skills else []
@@ -103,7 +103,7 @@ def set_skills_list(self, skills: list[str]) -> None:
 The running average is encapsulated inside `FreelancerProfile.update_rating()`, hiding the formula from callers:
 
 ```python
-# backend/models/user.py — Lines 161–175
+# backend/models/user.py — Lines 161–174
 
 def update_rating(self, new_score: int) -> None:
     current_avg = self.avg_rating or 0.0
@@ -280,7 +280,7 @@ Usage: `Depends(require_role("client"))` vs `Depends(require_role("freelancer"))
 Python's `heapq` is a **min-heap**. `BidRanked` inverts `__lt__` so that the highest score is treated as "smallest", making the heap a max-heap:
 
 ```python
-# backend/models/bid.py — Lines 79–126
+# backend/models/bid.py — Lines 80–126
 
 @dataclass(order=False)
 class BidRanked:
@@ -302,7 +302,7 @@ class BidRanked:
 ### `RankedBidQueue` — Container Protocol
 
 ```python
-# backend/services/ranking.py — Lines 97–102
+# backend/services/ranking.py — Lines 97–101
 
 def __len__(self):     return len(self._index)     # supports len(queue)
 def __bool__(self):    return len(self._index) > 0  # supports if queue:
@@ -391,7 +391,7 @@ class UserRole(str, enum.Enum):
 `BidRanked` uses `@dataclass` to auto-generate `__init__` and `__repr__` from field declarations:
 
 ```python
-# backend/models/bid.py — Lines 79–97
+# backend/models/bid.py — Lines 80–97
 
 @dataclass(order=False)
 class BidRanked:
@@ -463,7 +463,7 @@ class UnauthorizedActionError(Exception): ...
 | `DuplicateBidError` | Same freelancer bids twice | 409 |
 | `InvalidBudgetError` | `budget_min ≥ budget_max` or negative | 400 |
 | `InvalidStatusTransitionError` | Illegal state change | 400 |
-| `UnauthorizedActionError` | Wrong role for action | 403 |
+| `UnauthorizedActionError` | *(reserved — not currently raised; role enforcement uses `HTTPException(403)` via `require_role()`)* | 403 |
 
 Exceptions are **raised in the model/service layer** and **caught in the router layer** to produce HTTP responses — a clean separation of concerns.
 
@@ -563,7 +563,7 @@ def get_db():
 Doesn't need `self` or `cls`; validates budget range before creating a `Project`:
 
 ```python
-# backend/models/project.py — Lines 168–177
+# backend/models/project.py — Lines 169–177
 
 @staticmethod
 def validate_budget(budget_min: float, budget_max: float) -> None:
@@ -576,7 +576,7 @@ def validate_budget(budget_min: float, budget_max: float) -> None:
 An alternative constructor that creates a pre-populated queue:
 
 ```python
-# backend/services/ranking.py — Lines 112–123
+# backend/services/ranking.py — Lines 113–123
 
 @classmethod
 def from_bids(cls, bid_ranked_list: list[BidRanked]) -> RankedBidQueue:

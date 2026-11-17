@@ -64,6 +64,11 @@ class Project(Base):
     budget_min = Column(Float, nullable=False)
     budget_max = Column(Float, nullable=False)
     deadline = Column(DateTime, nullable=False)
+    # M-8 note: deadline and created_at are stored as timezone-naive UTC.
+    # The seed script and frontend use datetime.now(timezone.utc) and
+    # Date.toISOString() respectively, which both produce UTC values.
+    # MySQL's DATETIME column does not store timezone info, so all code
+    # must consistently treat stored values as UTC.
     status = Column(
         String(20), nullable=False, default=ProjectStatus.OPEN.value
     )
