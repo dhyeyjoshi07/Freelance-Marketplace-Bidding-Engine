@@ -51,3 +51,4 @@ def pytest_collection_modifyitems(config, items):
         module_name = item.module.__name__
         if "test_api" in module_name or "test_dbms" in module_name:
             item.add_marker(skip_mysql)
+

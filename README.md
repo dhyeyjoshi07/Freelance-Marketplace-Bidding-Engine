@@ -73,38 +73,46 @@ flowchart LR
 ```
 freelance-marketplace/
 ├── backend/
-│   ├── app.py                    # FastAPI app factory, middleware, lifespan
-│   ├── config.py                 # Environment-driven configuration
-│   ├── database.py               # Engine, session factory, triggers, stored procedures
-│   ├── dependencies.py           # DI: get_db, get_current_user, require_role()
-│   ├── exceptions.py             # 5 domain exceptions (4 active + 1 reserved)
+│   ├── __init__.py                # Package init with __version__
+│   ├── app.py                     # FastAPI app factory, middleware, lifespan
+│   ├── config.py                  # Environment-driven configuration
+│   ├── database.py                # Engine, session factory, init_db()
+│   ├── db/                        # MySQL database objects
+│   │   ├── triggers.py            # BEFORE/AFTER triggers
+│   │   ├── indexes.py             # Performance indexes
+│   │   ├── procedures.py          # Stored procedures and functions
+│   │   └── audit.py               # Audit log table DDL
+│   ├── dependencies.py            # DI: get_db, get_current_user, require_role()
+│   ├── exceptions.py              # 5 domain exceptions (4 active + 1 reserved)
 │   ├── models/
-│   │   ├── enums.py              # ProjectStatus, UserRole
-│   │   ├── user.py               # User (ORM) + UserBase ABC hierarchy + FreelancerProfile
-│   │   ├── project.py            # Project with encapsulated status machine
-│   │   └── bid.py                # Bid (ORM) + BidRanked (dataclass) + Rating
-│   ├── schemas/                  # Pydantic v2 request/response validation
+│   │   ├── enums.py               # ProjectStatus, UserRole
+│   │   ├── user.py                # User (ORM) + UserBase ABC hierarchy + FreelancerProfile
+│   │   ├── project.py             # Project with encapsulated status machine
+│   │   └── bid.py                 # Bid (ORM) + BidRanked (dataclass) + Rating
+│   ├── schemas/                   # Pydantic v2 request/response validation
 │   ├── routers/
-│   │   ├── auth.py               # Registration, JWT login, profile
-│   │   ├── projects.py           # CRUD, bid acceptance, dual-completion
-│   │   ├── bids.py               # Submission (auto-scored), ranked listing
-│   │   ├── freelancers.py        # Profile management
-│   │   └── admin.py              # EXPLAIN, ACID demo, stored procedures, audit log
+│   │   ├── auth.py                # Registration, JWT login, profile
+│   │   ├── projects.py            # CRUD, bid acceptance, dual-completion
+│   │   ├── bids.py                # Submission (auto-scored), ranked listing
+│   │   ├── freelancers.py         # Profile management
+│   │   └── admin.py               # EXPLAIN, ACID demo, stored procedures, audit log
 │   └── services/
-│       ├── auth_service.py       # bcrypt + JWT
-│       ├── match_engine.py       # MatchEngine + WeightedSkillMatchEngine
-│       ├── ranking.py            # RankedBidQueue (heapq)
-│       ├── encryption.py         # AES-256 column encryption
-│       ├── query_analyzer.py     # EXPLAIN wrapper, index analysis
+│       ├── auth_service.py        # bcrypt + JWT
+│       ├── match_engine.py        # MatchEngine + WeightedSkillMatchEngine
+│       ├── ranking.py             # RankedBidQueue (heapq)
+│       ├── encryption.py          # AES-256 column encryption
+│       ├── query_analyzer.py      # EXPLAIN wrapper, index analysis
 │       └── transaction_manager.py
-├── frontend/                     # Vanilla HTML/CSS/JS
+├── frontend/                      # Vanilla HTML/CSS/JS
 ├── docs/
-│   ├── dbms.md                   # Database design documentation
-│   └── oops.md                   # OOP patterns and class diagram
-├── scripts/sql/                  # DDL, DML, DCL, triggers, procedures, transactions
-├── tests/                        # 106 tests (unit + integration + DB)
-├── seed.py                       # Demo data seeder
-├── run.py                        # uvicorn entry point
+│   ├── dbms.md                    # Database design documentation
+│   └── oops.md                    # OOP patterns and class diagram
+├── scripts/
+│   ├── seed.py                    # Demo data seeder
+│   └── sql/                       # DDL, DML, DCL, triggers, procedures, transactions
+├── tests/                         # 106 tests (unit + integration + DB)
+├── .env.example                   # Environment variable reference
+├── run.py                         # uvicorn entry point
 ├── requirements.txt
 └── LICENSE
 ```
@@ -171,7 +179,7 @@ mysql -u root -e "
 "
 
 # Seed rich demo data (8 clients, 15 freelancers, 18 projects, 54 bids, 4 reviews)
-python3 seed.py
+python3 scripts/seed.py
 
 # Run the server
 python3 run.py
